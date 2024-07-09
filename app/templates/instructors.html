@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Instructors</h1>
+<a href="{{ url_for('main.add_instructor') }}">Add New Instructor</a>
+<a href="{{ url_for('main.download_instructors') }}" class="btn btn-primary">Download Excel</a>
+<form action="{{ url_for('main.upload_instructors') }}" method="post" enctype="multipart/form-data" style="display:inline;">
+    <input type="file" name="file" accept=".xlsx" required>
+    <button type="submit" class="btn btn-secondary">Import Instructors Records</button>
+</form>
+<table border="1">
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Practice Location</th>
+            <th>Area of Expertise</th>
+            <th>City</th>
+            <th>Address</th>
+            <th>Phone</th>
+            <th>Email</th>
+            <th>Relevant Semesters</th>
+            <th>Years of Experience</th>
+            <th>Available Days to Assign</th>
+            <th>Max Students per Day</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for instructor in instructors %}
+        <tr>
+            <td>{{ instructor.name }}</td>
+            <td>{{ instructor.practice_location }}</td>
+            <td>{{ instructor.area_of_expertise }}</td>
+            <td>{{ instructor.city }}</td>
+            <td>{{ instructor.address }}</td>
+            <td>{{ instructor.phone }}</td>
+            <td>{{ instructor.email }}</td>
+            <td>{{ instructor.relevant_semesters }}</td>
+            <td>{{ instructor.years_of_experience }}</td>
+            <td>{{ instructor.available_days_to_assign }}</td>
+            <td>{{ instructor.max_students_per_day }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

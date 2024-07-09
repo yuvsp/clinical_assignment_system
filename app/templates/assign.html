@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Assign Instructor to {{ student.name }}</h1>
+<form method="post">
+    <table border="1">
+        <thead>
+            <tr>
+                <th>Instructor Name</th>
+                <th>Area of Expertise</th>
+                <th>Available Day</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for instructor, day in relevant_instructor_days %}
+            <tr class="green-background">
+                <td>{{ instructor.name }}</td>
+                <td>{{ instructor.area_of_expertise }}</td>
+                <td>{{ day }}</td>
+                <td>
+                    <button type="submit" name="instructor_id" value="{{ instructor.id }}" onclick="document.getElementById('assigned_day').value='{{ day }}'">Assign</button>
+                </td>
+            </tr>
+            {% endfor %}
+            {% for instructor, day, reason in irrelevant_instructors %}
+            <tr class="{% if reason == 'Field is not relevant' %}yellow-background{% else %}red-background{% endif %}">
+                <td style="text-decoration: line-through;">{{ instructor.name }}</td>
+                <td style="text-decoration: line-through;">{{ instructor.area_of_expertise }}</td>
+                <td style="text-decoration: line-through;">{{ day }}</td>
+                <td>
+                    {% if reason == 'Field is not relevant' %}
+                    <button type="submit" name="instructor_id" value="{{ instructor.id }}" onclick="document.getElementById('assigned_day').value='{{ day }}'">Assign</button>
+                    {% else %}
+                    {{ reason }}
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <input type="hidden" id="assigned_day" name="assigned_day">
+</form>
+
+<style>
+    .green-background {
+        background-color: lightgreen;
+    }
+
+    .red-background {
+        background-color: lightcoral;
+    }
+
+    .yellow-background {
+        background-color: yellow;
+    }
+</style>
+{% endblock %}

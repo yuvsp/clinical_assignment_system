@@ -1,0 +1,6 @@
+Flask
+SQLAlchemy
+pandas
+Flask-Migrate
+xlsxwriter
+openpyxl

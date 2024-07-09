@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Current Assignments</h1>
+<a href="{{ url_for('main.download_assignments') }}" class="btn btn-primary">Download Excel</a>
+<table border="1">
+    <thead>
+        <tr>
+            <th>Student Name</th>
+            <th>Assigned Instructor</th>
+            <th>Action</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for student_id, student_data in student_assignments.items() %}
+            {% set row_class = loop.index0 % 2 == 0 and 'even-row' or 'odd-row' %}
+            {% for i in range(3) %}
+                <tr class="{{ row_class }}">
+                    <td>{{ student_data.name }} #{{ i + 1 }} [ {{ student_data.preferred_fields | join(', ') }} ]</td>
+                    {% if student_data.assignments[i] %}
+                        {% set reason = student_data.assignments[i].instructor.area_of_expertise not in student_data.preferred_fields and 'yellow-background' %}
+                        <td class="{{ reason }}">{{ student_data.assignments[i].instructor.name }} - {{ student_data.assignments[i].assigned_day }} - {{ student_data.assignments[i].instructor.area_of_expertise }}</td>
+                        <td>
+                            <form method="post" action="{{ url_for('main.remove_assignment', assignment_id=student_data.assignments[i].id) }}">
+                                <button type="submit">Cancel Assignment</button>
+                            </form>
+                        </td>
+                    {% else %}
+                        <td>Not assigned yet</td>
+                        <td>
+                            <div class="student" onmouseover="fetchInstructors('{{ student_id }}', this.querySelector('.instructors-tooltip'))" data-student-id="{{ student_id }}">
+                                <a href="{{ url_for('main.assign_instructor', student_id=student_id) }}">Assign Instructor</a>
+                                <div class="instructors-tooltip">Loading...</div>
+                            </div>
+                        </td>
+                    {% endif %}
+                </tr>
+            {% endfor %}
+        {% endfor %}
+    </tbody>
+</table>
+
+<style>
+    .even-row {
+        background-color: #f2f2f2 !important; /* Light gray for even rows */
+    }
+
+    .odd-row {
+        background-color: #ffffff !important; /* White for odd rows */
+    }
+
+    .yellow-background {
+        background-color: yellow !important;
+    }
+
+    .student {
+        position: relative;
+        display: inline-block; /* Inline-block to enable hovering */
+    }
+
+    .instructors-tooltip {
+        visibility: hidden;
+        width: 200px;
+        background-color: #f9f9f9;
+        color: #000;
+        text-align: left;
+        border: 1px solid #ccc;
+        padding: 10px;
+        position: absolute;
+        z-index: 1;
+        top: 100%;
+        left: 50%;
+        margin-left: -100px;
+    }
+
+    .student:hover .instructors-tooltip {
+        visibility: visible;
+    }
+</style>
+
+<script>
+    function fetchInstructors(studentId, tooltipElement) {
+        fetch(`/relevant_instructors/${studentId}`)
+            .then(response => response.json())
+            .then(data => {
+                tooltipElement.innerHTML = '<strong>Relevant Instructors:</strong>';
+                data.relevant_instructors.forEach(instructor => {
+                    let p = document.createElement('p');
+                    p.classList.add('green-background');
+                    p.textContent = `${instructor.name} - ${instructor.area_of_expertise} - ${instructor.day}`;
+                    tooltipElement.appendChild(p);
+                });
+                tooltipElement.innerHTML += '<strong>Irrelevant Instructors:</strong>';
+                data.irrelevant_instructors.forEach(instructor => {
+                    let p = document.createElement('p');
+                    p.style.textDecoration = 'line-through';
+                    if (instructor.reason === "Instructor is booked for the selected day") {
+                        p.classList.add('red-background');
+                    }
+                    if (instructor.reason === "Field is not relevant") {
+                        p.classList.add('yellow-background');
+                    }
+                    p.textContent = `${instructor.name} - ${instructor.area_of_expertise} - ${instructor.day} (${instructor.reason})`;
+                    tooltipElement.appendChild(p);
+                });
+            })
+            .catch(error => {
+                console.error('Error fetching instructors:', error);
+            });
+    }
+</script>
+{% endblock %}

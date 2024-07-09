@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <h1>Students</h1>
+    <a href="{{ url_for('main.add_student') }}">Add New Student</a>
+    <a href="{{ url_for('main.download_students') }}" class="btn btn-primary">Download Excel</a>
+    <form action="{{ url_for('main.upload_students') }}" method="post" enctype="multipart/form-data" style="display:inline;">
+        <input type="file" name="file" accept=".xlsx" required>
+        <button type="submit" class="btn btn-secondary">Import Students Records</button>
+    </form>
+    <ul>
+        {% for student in students %}
+            <li>
+                <div class="student" onmouseover="fetchInstructors('{{ student.id }}', this.querySelector('.instructors-tooltip'))" data-student-id="{{ student.id }}">
+                    {{ student.name }} - Preferred Fields: {{ student.preferred_fields }} - Preferred Practice Area: {{ student.preferred_practice_area }}
+                    <a href="{{ url_for('main.assign_instructor', student_id=student.id) }}">Assign Instructor</a>
+                    <div class="instructors-tooltip">Loading...</div>
+                </div>
+            </li>
+        {% endfor %}
+    </ul>
+
+    <style>
+        .student {
+            position: relative;
+            display: block; /* Change to block to ensure each student appears on a new line */
+            margin-bottom: 10px; /* Optional: Add margin between each student */
+        }
+
+        .instructors-tooltip {
+            visibility: hidden;
+            width: 200px;
+            background-color: #f9f9f9;
+            color: #000;
+            text-align: left;
+            border: 1px solid #ccc;
+            padding: 10px;
+            position: absolute;
+            z-index: 1;
+            top: 100%;
+            left: 50%;
+            margin-left: -100px;
+        }
+
+        .student:hover .instructors-tooltip {
+            visibility: visible;
+        }
+
+        .green-background {
+            background-color: lightgreen;
+        }
+
+        .red-background {
+            background-color: lightcoral;
+        }
+    </style>
+
+    <script>
+        function fetchInstructors(studentId, tooltipElement) {
+            fetch(`/relevant_instructors/${studentId}`)
+                .then(response => response.json())
+                .then(data => {
+                    tooltipElement.innerHTML = '<strong>Relevant Instructors:</strong>';
+                    data.relevant_instructors.forEach(instructor => {
+                        let p = document.createElement('p');
+                        p.classList.add('green-background');
+                        p.textContent = `${instructor.name} - ${instructor.area_of_expertise} - ${instructor.day}`;
+                        tooltipElement.appendChild(p);
+                    });
+                    tooltipElement.innerHTML += '<strong>Irrelevant Instructors:</strong>';
+                    data.irrelevant_instructors.forEach(instructor => {
+                        let p = document.createElement('p');
+                        p.style.textDecoration = 'line-through';
+                        if (instructor.reason === "Instructor is booked for the selected day") {
+                            p.classList.add('red-background');
+                        }
+                        p.textContent = `${instructor.name} - ${instructor.area_of_expertise} - ${instructor.day} (${instructor.reason})`;
+                        tooltipElement.appendChild(p);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error fetching instructors:', error);
+                });
+        }
+    </script>
+{% endblock %}
