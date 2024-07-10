@@ -17,7 +17,7 @@
             {% for instructor, day, assignment, student_already_assigned_to_instructor in relevant_instructor_days %}
             <tr class="table-success">
                 <td>{{ instructor.name }}</td>
-                <td>{{ instructor.area_of_expertise }}</td>
+                <td>{{ instructor.area_of_expertise.name }}</td>
                 <td>{{ day }}</td>
                 <td>
                     {% if day in student_assigned_days %}
@@ -40,7 +40,7 @@
             {% for instructor, day, reason in irrelevant_instructors %}
             <tr class="{% if reason == 'Field is not relevant' %}table-warning{% else %}table-danger{% endif %}">
                 <td style="text-decoration: line-through;">{{ instructor.name }}</td>
-                <td style="text-decoration: line-through;">{{ instructor.area_of_expertise }}</td>
+                <td style="text-decoration: line-through;">{{ instructor.area_of_expertise.name }}</td>
                 <td style="text-decoration: line-through;">{{ day }}</td>
                 <td>{{ reason }}</td>
                 <td>

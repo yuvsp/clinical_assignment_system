@@ -1,36 +1,39 @@
 {% extends "base.html" %}
 
 {% block content %}
-    <h1 class="mb-4">Students</h1>
-    <a href="{{ url_for('main.add_student') }}" class="btn btn-primary mb-3">Add New Student</a>
-    <a href="{{ url_for('main.download_students') }}" class="btn btn-secondary mb-3">Download Excel</a>
-    <form action="{{ url_for('main.upload_students') }}" method="post" enctype="multipart/form-data" class="mb-3">
-        <input type="file" name="file" accept=".xlsx" required class="form-control-file">
-        <button type="submit" class="btn btn-secondary">Import Students Records</button>
-    </form>
-    <table class="table table-bordered">
-        <thead class="thead-light">
-            <tr>
-                <th>Name</th>
-                <th>Preferred Fields</th>
-                <th>Preferred Practice Area</th>
-                <th>Action</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for student in students %}
-                <tr>
-                    <td>{{ student.name }}</td>
-                    <td>{{ student.preferred_fields }}</td>
-                    <td>{{ student.preferred_practice_area }}</td>
-                    <td>
-                        <div class="student" onmouseover="fetchInstructors('{{ student.id }}', this.querySelector('.instructors-tooltip'))" data-student-id="{{ student.id }}">
-                            <a href="{{ url_for('main.assign_instructor', student_id=student.id) }}" class="btn btn-primary btn-sm">Assign Instructor</a>
-                            <div class="instructors-tooltip">Loading...</div>
-                        </div>
-                    </td>
-                </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+<h1 class="mb-4">Students</h1>
+<a href="{{ url_for('main.add_student') }}" class="btn btn-primary mb-3">Add New Student</a>
+<a href="{{ url_for('main.download_students') }}" class="btn btn-primary mb-3">Download Excel</a>
+<form action="{{ url_for('main.upload_students') }}" method="post" enctype="multipart/form-data">
+    <div class="form-group">
+        <input type="file" class="form-control-file" name="file" required>
+    </div>
+    <button type="submit" class="btn btn-primary">Import Students Records</button>
+</form>
+<table class="table table-bordered mt-4">
+    <thead class="thead-light">
+        <tr>
+            <th>Name</th>
+            <th>Preferred Fields</th>
+            <th>Preferred Practice Area</th>
+            <th>Action</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for student in students %}
+        <tr>
+            <td>{{ student.name }}</td>
+            <td>
+                {{ student.preferred_field_1.name if student.preferred_field_1 else '' }},
+                {{ student.preferred_field_2.name if student.preferred_field_2 else '' }},
+                {{ student.preferred_field_3.name if student.preferred_field_3 else '' }}
+            </td>
+            <td>{{ student.preferred_practice_area }}</td>
+            <td>
+                <a href="{{ url_for('main.assign_instructor', student_id=student.id) }}" class="btn btn-success">Assign Instructor</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
 {% endblock %}

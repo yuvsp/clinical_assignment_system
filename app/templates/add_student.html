@@ -9,15 +9,27 @@
     </div>
     <div class="form-group">
         <label for="preferred_fields_1">Preferred Field 1:</label>
-        <input type="text" id="preferred_fields_1" name="preferred_fields_1" class="form-control" required>
+        <select id="preferred_fields_1" name="preferred_fields_1" class="form-control" required>
+            {% for field in fields %}
+            <option value="{{ field.id }}">{{ field.name }}</option>
+            {% endfor %}
+        </select>
     </div>
     <div class="form-group">
         <label for="preferred_fields_2">Preferred Field 2:</label>
-        <input type="text" id="preferred_fields_2" name="preferred_fields_2" class="form-control" required>
+        <select id="preferred_fields_2" name="preferred_fields_2" class="form-control" required>
+            {% for field in fields %}
+            <option value="{{ field.id }}">{{ field.name }}</option>
+            {% endfor %}
+        </select>
     </div>
     <div class="form-group">
         <label for="preferred_fields_3">Preferred Field 3:</label>
-        <input type="text" id="preferred_fields_3" name="preferred_fields_3" class="form-control" required>
+        <select id="preferred_fields_3" name="preferred_fields_3" class="form-control" required>
+            {% for field in fields %}
+            <option value="{{ field.id }}">{{ field.name }}</option>
+            {% endfor %}
+        </select>
     </div>
     <div class="form-group">
         <label for="preferred_practice_area">Preferred Practice Area:</label>

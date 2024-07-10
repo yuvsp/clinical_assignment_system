@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1 class="mb-4">Fields</h1>
+<a href="{{ url_for('main.add_field') }}" class="btn btn-primary mb-3">Add New Field</a>
+<table class="table table-bordered">
+    <thead class="thead-light">
+        <tr>
+            <th>Name</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for field in fields %}
+        <tr>
+            <td>{{ field.name }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

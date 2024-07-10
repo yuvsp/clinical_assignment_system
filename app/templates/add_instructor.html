@@ -5,66 +5,78 @@
 <form method="post">
     <div class="form-group">
         <label for="name">Name:</label>
-        <input type="text" id="name" name="name" class="form-control" required>
+        <input type="text" class="form-control" id="name" name="name" required>
     </div>
     <div class="form-group">
         <label for="practice_location">Practice Location:</label>
-        <input type="text" id="practice_location" name="practice_location" class="form-control" required>
+        <input type="text" class="form-control" id="practice_location" name="practice_location" required>
     </div>
     <div class="form-group">
         <label for="area_of_expertise">Area of Expertise:</label>
-        <input type="text" id="area_of_expertise" name="area_of_expertise" class="form-control" required>
+        <select class="form-control" id="area_of_expertise" name="area_of_expertise" required>
+            {% for field in fields %}
+            <option value="{{ field.id }}">{{ field.name }}</option>
+            {% endfor %}
+        </select>
     </div>
     <div class="form-group">
         <label for="city">City:</label>
-        <input type="text" id="city" name="city" class="form-control" required>
+        <input type="text" class="form-control" id="city" name="city" required>
     </div>
     <div class="form-group">
         <label for="address">Address:</label>
-        <input type="text" id="address" name="address" class="form-control" required>
+        <input type="text" class="form-control" id="address" name="address" required>
     </div>
     <div class="form-group">
         <label for="phone">Phone:</label>
-        <input type="text" id="phone" name="phone" class="form-control" required>
+        <input type="text" class="form-control" id="phone" name="phone" required>
     </div>
     <div class="form-group">
         <label for="email">Email:</label>
-        <input type="email" id="email" name="email" class="form-control" required>
+        <input type="email" class="form-control" id="email" name="email" required>
     </div>
     <div class="form-group">
         <label for="relevant_semesters">Relevant Semesters:</label>
-        <input type="text" id="relevant_semesters" name="relevant_semesters" class="form-control" required>
+        <input type="text" class="form-control" id="relevant_semesters" name="relevant_semesters" required>
     </div>
     <div class="form-group">
         <label for="years_of_experience">Years of Experience:</label>
-        <input type="number" id="years_of_experience" name="years_of_experience" class="form-control" required>
+        <input type="number" class="form-control" id="years_of_experience" name="years_of_experience" required>
     </div>
     <div class="form-group">
-        <label>Available Days to Assign:</label>
+        <label for="available_days_to_assign">Available Days to Assign:</label>
         <div class="form-check">
-            <input type="checkbox" id="sunday" name="available_days_to_assign" value="ראשון" class="form-check-input">
-            <label for="sunday" class="form-check-label">ראשון</label>
+            <input class="form-check-input" type="checkbox" value="ראשון" id="sunday" name="available_days_to_assign">
+            <label class="form-check-label" for="sunday">ראשון</label>
         </div>
         <div class="form-check">
-            <input type="checkbox" id="monday" name="available_days_to_assign" value="שני" class="form-check-input">
-            <label for="monday" class="form-check-label">שני</label>
+            <input class="form-check-input" type="checkbox" value="שני" id="monday" name="available_days_to_assign">
+            <label class="form-check-label" for="monday">שני</label>
         </div>
         <div class="form-check">
-            <input type="checkbox" id="tuesday" name="available_days_to_assign" value="שלישי" class="form-check-input">
-            <label for="tuesday" class="form-check-label">שלישי</label>
+            <input class="form-check-input" type="checkbox" value="שלישי" id="tuesday" name="available_days_to_assign">
+            <label class="form-check-label" for="tuesday">שלישי</label>
         </div>
         <div class="form-check">
-            <input type="checkbox" id="wednesday" name="available_days_to_assign" value="רביעי" class="form-check-input">
-            <label for="wednesday" class="form-check-label">רביעי</label>
+            <input class="form-check-input" type="checkbox" value="רביעי" id="wednesday" name="available_days_to_assign">
+            <label class="form-check-label" for="wednesday">רביעי</label>
         </div>
         <div class="form-check">
-            <input type="checkbox" id="thursday" name="available_days_to_assign" value="חמישי" class="form-check-input">
-            <label for="thursday" class="form-check-label">חמישי</label>
+            <input class="form-check-input" type="checkbox" value="חמישי" id="thursday" name="available_days_to_assign">
+            <label class="form-check-label" for="thursday">חמישי</label>
+        </div>
+        <div class="form-check">
+            <input class="form-check-input" type="checkbox" value="שישי" id="friday" name="available_days_to_assign">
+            <label class="form-check-label" for="friday">שישי</label>
+        </div>
+        <div class="form-check">
+            <input class="form-check-input" type="checkbox" value="שבת" id="saturday" name="available_days_to_assign">
+            <label class="form-check-label" for="saturday">שבת</label>
         </div>
     </div>
     <div class="form-group">
         <label for="max_students_per_day">Max Students per Day:</label>
-        <input type="number" id="max_students_per_day" name="max_students_per_day" class="form-control" value="1" required>
+        <input type="number" class="form-control" id="max_students_per_day" name="max_students_per_day" required>
     </div>
     <button type="submit" class="btn btn-primary">Add Instructor</button>
 </form>
