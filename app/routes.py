@@ -102,6 +102,14 @@ def add_student():
 def assign_instructor(student_id):
     student = Student.query.get(student_id)
     if request.method == 'POST':
+        if 'cancel_assignment_id' in request.form:
+            assignment_id = request.form['cancel_assignment_id']
+            assignment = Assignment.query.get(assignment_id)
+            if assignment:
+                db.session.delete(assignment)
+                db.session.commit()
+            return redirect(url_for('main.current_assignments'))
+
         instructor_id = request.form['instructor_id']
         assigned_day = request.form['assigned_day']
 
@@ -128,12 +136,16 @@ def assign_instructor(student_id):
         available_days = instructor.available_days_to_assign.split(',')
         for day in available_days:
             assigned_count = Assignment.query.filter_by(instructor_id=instructor.id, assigned_day=day).count()
-            if assigned_count < instructor.max_students_per_day:
+            if day in student_assigned_days:
+                student_already_assigned_to_instructor = any(assignment.instructor_id == instructor.id for assignment in student_assignments)
+                if student_already_assigned_to_instructor:
+                    assignment = next(assignment for assignment in student_assignments if assignment.instructor_id == instructor.id and assignment.assigned_day == day)
+                    relevant_instructors.append((instructor, day, assignment, True))
+                else:
+                    irrelevant_instructors.append((instructor, day, "Student already has assignment at this day"))
+            elif assigned_count < instructor.max_students_per_day:
                 if instructor.area_of_expertise in preferred_fields:
-                    if day not in student_assigned_days:
-                        relevant_instructors.append((instructor, day))
-                    else:
-                        irrelevant_instructors.append((instructor, day, "Student already has assignment at this day"))
+                    relevant_instructors.append((instructor, day, None, False))
                 else:
                     irrelevant_instructors.append((instructor, day, "Field is not relevant"))
             else:

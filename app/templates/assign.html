@@ -14,15 +14,23 @@
             </tr>
         </thead>
         <tbody>
-            {% for instructor, day in relevant_instructor_days %}
+            {% for instructor, day, assignment, student_already_assigned_to_instructor in relevant_instructor_days %}
             <tr class="green-background">
                 <td>{{ instructor.name }}</td>
                 <td>{{ instructor.area_of_expertise }}</td>
                 <td>{{ day }}</td>
-                <td></td>
                 <td>
                     {% if day in student_assigned_days %}
                     Student already has assignment at this day
+                    {% endif %}
+                </td>
+                <td>
+                    {% if day in student_assigned_days %}
+                    {% if student_already_assigned_to_instructor %}
+                    <button type="submit" name="cancel_assignment_id" value="{{ assignment.id }}" class="pink-button">Cancel Assignment</button>
+                    {% else %}
+                    Student already has assignment at this day
+                    {% endif %}
                     {% else %}
                     <button type="submit" name="instructor_id" value="{{ instructor.id }}" onclick="document.getElementById('assigned_day').value='{{ day }}'">Assign</button>
                     {% endif %}
@@ -58,6 +66,10 @@
 
     .yellow-background {
         background-color: yellow;
+    }
+
+    .pink-button {
+        background-color: pink;
     }
 </style>
 {% endblock %}
