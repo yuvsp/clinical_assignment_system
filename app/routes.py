@@ -12,7 +12,7 @@ bp = Blueprint('main', __name__)
 UPLOAD_FOLDER = 'uploads'
 ALLOWED_EXTENSIONS = {'xlsx'} 
 
-if not os.path.exists(UPLOAD_FOLDER):
+if not os.path.exists(UPLOAD_FOLDER): 
     os.makedirs(UPLOAD_FOLDER)
 
 
@@ -124,8 +124,6 @@ def assign_instructor(student_id):
     student_assignments = Assignment.query.filter_by(student_id=student_id).all()
     student_assigned_days = [assignment.assigned_day for assignment in student_assignments]
 
-    assigned_day = request.args.get('assigned_day')
-
     for instructor in all_instructors:
         available_days = instructor.available_days_to_assign.split(',')
         for day in available_days:
@@ -135,13 +133,13 @@ def assign_instructor(student_id):
                     if day not in student_assigned_days:
                         relevant_instructors.append((instructor, day))
                     else:
-                        irrelevant_instructors.append((instructor, day, "Student already has an instructor assigned for this day"))
+                        irrelevant_instructors.append((instructor, day, "Student already has assignment at this day"))
                 else:
                     irrelevant_instructors.append((instructor, day, "Field is not relevant"))
             else:
                 irrelevant_instructors.append((instructor, day, "Instructor is booked for the selected day"))
 
-    return render_template('assign.html', student=student, relevant_instructor_days=relevant_instructors, irrelevant_instructors=irrelevant_instructors)
+    return render_template('assign.html', student=student, relevant_instructor_days=relevant_instructors, irrelevant_instructors=irrelevant_instructors, student_assigned_days=student_assigned_days)
 
 @bp.route('/relevant_instructors/<int:student_id>')
 def relevant_instructors(student_id):
@@ -230,14 +228,37 @@ def download_assignments():
     timestamp = datetime.now().strftime("%d_%m_%y_%H_%M")
     filename = f"assignments_{timestamp}.xlsx"
 
+    students = Student.query.all()
     assignments = Assignment.query.all()
-    data = [{
-        'Student Name': assignment.student.name,
-        'Instructor Name': assignment.instructor.name,
-        'Assigned Day': assignment.assigned_day
-    } for assignment in assignments]
+    
+    # Prepare data for the Excel file
+    data = []
+    for student in students:
+        student_assignments = [assignment for assignment in assignments if assignment.student_id == student.id]
+        for i in range(3):
+            if i < len(student_assignments):
+                assignment = student_assignments[i]
+                row = {
+                    'Student Name': f"{student.name} #{i + 1} [ {student.preferred_fields} ]",
+                    'Assigned Instructor': assignment.instructor.name,
+                    'Instructor Field': assignment.instructor.area_of_expertise,
+                    'Assigned Day': assignment.assigned_day
+                }
+            else:
+                row = {
+                    'Student Name': f"{student.name} #{i + 1} [ {student.preferred_fields} ]",
+                    'Assigned Instructor': "Not assigned yet",
+                    'Instructor Field': "",
+                    'Assigned Day': ""
+                }
+            data.append(row)
 
+    # Create a DataFrame
     df = pd.DataFrame(data)
+    
+    # Reorder the columns as required
+    df = df[['Student Name', 'Assigned Instructor', 'Instructor Field', 'Assigned Day']]
+    
     output = io.BytesIO()
     writer = pd.ExcelWriter(output, engine='xlsxwriter')
     df.to_excel(writer, index=False, sheet_name='Assignments')

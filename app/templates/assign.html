@@ -9,6 +9,7 @@
                 <th>Instructor Name</th>
                 <th>Area of Expertise</th>
                 <th>Available Day</th>
+                <th>Remark</th>
                 <th>Action</th>
             </tr>
         </thead>
@@ -18,8 +19,13 @@
                 <td>{{ instructor.name }}</td>
                 <td>{{ instructor.area_of_expertise }}</td>
                 <td>{{ day }}</td>
+                <td></td>
                 <td>
+                    {% if day in student_assigned_days %}
+                    Student already has assignment at this day
+                    {% else %}
                     <button type="submit" name="instructor_id" value="{{ instructor.id }}" onclick="document.getElementById('assigned_day').value='{{ day }}'">Assign</button>
+                    {% endif %}
                 </td>
             </tr>
             {% endfor %}
@@ -28,11 +34,10 @@
                 <td style="text-decoration: line-through;">{{ instructor.name }}</td>
                 <td style="text-decoration: line-through;">{{ instructor.area_of_expertise }}</td>
                 <td style="text-decoration: line-through;">{{ day }}</td>
+                <td>{{ reason }}</td>
                 <td>
                     {% if reason == 'Field is not relevant' %}
                     <button type="submit" name="instructor_id" value="{{ instructor.id }}" onclick="document.getElementById('assigned_day').value='{{ day }}'">Assign</button>
-                    {% else %}
-                    {{ reason }}
                     {% endif %}
                 </td>
             </tr>

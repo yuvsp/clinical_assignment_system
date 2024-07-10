@@ -1,6 +1,16 @@
 /* Import Google Fonts */
 @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
 
+/* Variables */
+:root {
+    --primary-color: #4CAF50;
+    --secondary-color: #FFC107;
+    --light-gray: #f2f2f2;
+    --white: #ffffff;
+    --light-green: lightgreen;
+    --light-coral: lightcoral;
+}
+
 /* Base Styles */
 body {
     font-family: 'Roboto', sans-serif;
@@ -13,20 +23,20 @@ body {
 
 /* Navigation Styles */
 nav {
-    background-color: #4CAF50;
+    background-color: var(--primary-color);
     padding: 10px;
     text-align: center;
 }
 
 nav a {
-    color: #FFFFFF;
+    color: var(--white);
     text-decoration: none;
     margin: 0 15px;
     font-weight: bold;
 }
 
 nav a:hover {
-    color: #FFC107;
+    color: var(--secondary-color);
 }
 
 /* Content Styles */
@@ -35,46 +45,44 @@ nav a:hover {
 }
 
 h1, h2, h3 {
-    color: #4CAF50;
+    color: var(--primary-color);
 }
 
+/* Table Styles */
 table {
     width: 100%;
     border-collapse: collapse;
     margin-bottom: 20px;
 }
 
-table, th, td {
-    border: 1px solid #dddddd;
-}
-
 th, td {
+    border: 1px solid #dddddd;
     padding: 12px;
     text-align: left;
 }
 
 th {
-    background-color: #4CAF50;
-    color: white;
+    background-color: var(--primary-color);
+    color: var(--white);
 }
 
 td {
-    background-color: #FFFFFF;
+    background-color: var(--white);
 }
 
 /* Row Styles */
 .even-row {
-    background-color: #e0e0e0 !important; /* Light gray for even rows */
+    background-color: var(--light-gray) !important;
 }
 
 .odd-row {
-    background-color: #ffffff !important; /* White for odd rows */
+    background-color: var(--white) !important;
 }
 
 /* Button Styles */
 button, input[type="submit"] {
-    background-color: #4CAF50;
-    color: white;
+    background-color: var(--primary-color);
+    color: var(--white);
     border: none;
     padding: 10px 20px;
     cursor: pointer;
@@ -87,7 +95,7 @@ button:hover, input[type="submit"]:hover {
 
 /* Form Styles */
 form {
-    background-color: #FFFFFF;
+    background-color: var(--white);
     padding: 20px;
     border: 1px solid #dddddd;
     margin-bottom: 20px;
@@ -136,9 +144,9 @@ input[type="text"], input[type="number"], select {
 
 /* Background Color Styles */
 .green-background {
-    background-color: lightgreen;
+    background-color: var(--light-green);
 }
 
 .red-background {
-    background-color: lightcoral;
+    background-color: var(--light-coral);
 }
