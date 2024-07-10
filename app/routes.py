@@ -139,7 +139,7 @@ def assign_instructor(student_id):
             if day in student_assigned_days:
                 student_already_assigned_to_instructor = any(assignment.instructor_id == instructor.id for assignment in student_assignments)
                 if student_already_assigned_to_instructor:
-                    assignment = next(assignment for assignment in student_assignments if assignment.instructor_id == instructor.id and assignment.assigned_day == day)
+                    assignment = next((assignment for assignment in student_assignments if assignment.instructor_id == instructor.id and assignment.assigned_day == day), None)
                     relevant_instructors.append((instructor, day, assignment, True))
                 else:
                     irrelevant_instructors.append((instructor, day, "Student already has assignment at this day"))
@@ -153,7 +153,7 @@ def assign_instructor(student_id):
 
     return render_template('assign.html', student=student, relevant_instructor_days=relevant_instructors, irrelevant_instructors=irrelevant_instructors, student_assigned_days=student_assigned_days)
 
-@bp.route('/relevant_instructors/<int:student_id>')
+@bp.route('/relevant_instructors/<int:student_id>')       
 def relevant_instructors(student_id):
     student = Student.query.get(student_id)
     if not student:

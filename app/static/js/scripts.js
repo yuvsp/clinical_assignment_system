@@ -16,6 +16,9 @@ function fetchInstructors(studentId, tooltipElement) {
                 if (instructor.reason === "Instructor is booked for the selected day") {
                     p.classList.add('red-background');
                 }
+                if (instructor.reason === "Field is not relevant") {
+                    p.classList.add('yellow-background');
+                }
                 p.textContent = `${instructor.name} - ${instructor.area_of_expertise} - ${instructor.day} (${instructor.reason})`;
                 tooltipElement.appendChild(p);
             });
@@ -30,18 +33,7 @@ document.addEventListener('DOMContentLoaded', function() {
         element.addEventListener('mouseover', function() {
             const studentId = this.getAttribute('data-student-id');
             const tooltipElement = this.querySelector('.instructors-tooltip');
-            fetchInstructors(studentId, tooltipElement);
-        });
-    });
-});
-
-
-document.addEventListener('DOMContentLoaded', function() {
-    document.querySelectorAll('.student').forEach(function(element) {
-        element.addEventListener('mouseover', function() {
-            const studentId = this.getAttribute('data-student-id');
-            const tooltipElement = this.querySelector('.instructors-tooltip');
-            fetchInstructors(studentId, tooltipElement);
+            fetchInstructors(studentId, tooltipElement); 
         });
     });
 });

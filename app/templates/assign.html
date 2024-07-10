@@ -1,10 +1,10 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h1>Assign Instructor to {{ student.name }}</h1>
+<h1 class="mb-4">Assign Instructor to {{ student.name }}</h1>
 <form method="post">
-    <table border="1">
-        <thead>
+    <table class="table table-bordered">
+        <thead class="thead-light">
             <tr>
                 <th>Instructor Name</th>
                 <th>Area of Expertise</th>
@@ -15,7 +15,7 @@
         </thead>
         <tbody>
             {% for instructor, day, assignment, student_already_assigned_to_instructor in relevant_instructor_days %}
-            <tr class="green-background">
+            <tr class="table-success">
                 <td>{{ instructor.name }}</td>
                 <td>{{ instructor.area_of_expertise }}</td>
                 <td>{{ day }}</td>
@@ -27,25 +27,25 @@
                 <td>
                     {% if day in student_assigned_days %}
                     {% if student_already_assigned_to_instructor %}
-                    <button type="submit" name="cancel_assignment_id" value="{{ assignment.id }}" class="pink-button">Cancel Assignment</button>
+                    <button type="submit" name="cancel_assignment_id" value="{{ assignment.id }}" class="btn btn-danger">Cancel Assignment</button>
                     {% else %}
                     Student already has assignment at this day
                     {% endif %}
                     {% else %}
-                    <button type="submit" name="instructor_id" value="{{ instructor.id }}" onclick="document.getElementById('assigned_day').value='{{ day }}'">Assign</button>
+                    <button type="submit" name="instructor_id" value="{{ instructor.id }}" onclick="document.getElementById('assigned_day').value='{{ day }}'" class="btn btn-primary">Assign</button>
                     {% endif %}
                 </td>
             </tr>
             {% endfor %}
             {% for instructor, day, reason in irrelevant_instructors %}
-            <tr class="{% if reason == 'Field is not relevant' %}yellow-background{% else %}red-background{% endif %}">
+            <tr class="{% if reason == 'Field is not relevant' %}table-warning{% else %}table-danger{% endif %}">
                 <td style="text-decoration: line-through;">{{ instructor.name }}</td>
                 <td style="text-decoration: line-through;">{{ instructor.area_of_expertise }}</td>
                 <td style="text-decoration: line-through;">{{ day }}</td>
                 <td>{{ reason }}</td>
                 <td>
                     {% if reason == 'Field is not relevant' %}
-                    <button type="submit" name="instructor_id" value="{{ instructor.id }}" onclick="document.getElementById('assigned_day').value='{{ day }}'">Assign</button>
+                    <button type="submit" name="instructor_id" value="{{ instructor.id }}" onclick="document.getElementById('assigned_day').value='{{ day }}'" class="btn btn-primary">Assign</button>
                     {% endif %}
                 </td>
             </tr>
@@ -54,22 +54,4 @@
     </table>
     <input type="hidden" id="assigned_day" name="assigned_day">
 </form>
-
-<style>
-    .green-background {
-        background-color: lightgreen;
-    }
-
-    .red-background {
-        background-color: lightcoral;
-    }
-
-    .yellow-background {
-        background-color: yellow;
-    }
-
-    .pink-button {
-        background-color: pink;
-    }
-</style>
 {% endblock %}

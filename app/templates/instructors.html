@@ -1,15 +1,15 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h1>Instructors</h1>
-<a href="{{ url_for('main.add_instructor') }}">Add New Instructor</a>
-<a href="{{ url_for('main.download_instructors') }}" class="btn btn-primary">Download Excel</a>
-<form action="{{ url_for('main.upload_instructors') }}" method="post" enctype="multipart/form-data" style="display:inline;">
-    <input type="file" name="file" accept=".xlsx" required>
+<h1 class="mb-4">Instructors</h1>
+<a href="{{ url_for('main.add_instructor') }}" class="btn btn-primary mb-3">Add New Instructor</a>
+<a href="{{ url_for('main.download_instructors') }}" class="btn btn-secondary mb-3">Download Excel</a>
+<form action="{{ url_for('main.upload_instructors') }}" method="post" enctype="multipart/form-data" class="mb-3">
+    <input type="file" name="file" accept=".xlsx" required class="form-control-file">
     <button type="submit" class="btn btn-secondary">Import Instructors Records</button>
 </form>
-<table border="1">
-    <thead>
+<table class="table table-bordered">
+    <thead class="thead-light">
         <tr>
             <th>Name</th>
             <th>Practice Location</th>
