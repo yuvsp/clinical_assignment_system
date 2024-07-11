@@ -89,19 +89,46 @@ button:hover, .btn:hover {
 
 .btn-danger {
     background-color: var(--light-coral) !important;
+    border: none !important;
 }
 
 .btn-danger:hover {
     background-color: #e63946 !important;
 }
 
+.table-success .btn, .table-danger .btn, .table-warning .btn {
+    border: none; /* Ensure no border for buttons in success, danger, and warning rows */
+}
+
+/* Ensure buttons inside the table cell have no padding/margin */
+.table td .btn {
+    margin: 0;
+    padding: 10px 20px;
+    border: none;
+}
+
 /* Form Styles */
+form button.btn {
+    display: block;
+  /*   width: 100%;*/
+    padding: 0.5rem;
+    margin: 0;
+    border: none;
+    background-color: #dc3545;
+    color: white;
+    text-align: center;
+    border-radius: 0.25rem;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+form button.btn:hover {
+    background-color: #c82333;
+}
+
 form {
-    background-color: var(--white);
-    padding: 20px;
-    border: 1px solid #dddddd;
-    margin-bottom: 20px;
-    border-radius: 10px;
+    margin: 0;
+    padding: 0;
 }
 
 label {

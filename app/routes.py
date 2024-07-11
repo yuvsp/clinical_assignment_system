@@ -172,6 +172,10 @@ def assign_instructor(student_id):
             else:
                 irrelevant_instructors.append((instructor, day, "Instructor is booked for the selected day"))
 
+    # Sort relevant instructors by preferred fields order
+    relevant_instructors.sort(key=lambda x: preferred_fields.index(x[0].area_of_expertise.name) if x[0].area_of_expertise.name in preferred_fields else len(preferred_fields))
+    irrelevant_instructors.sort(key=lambda x: preferred_fields.index(x[0].area_of_expertise.name) if x[0].area_of_expertise.name in preferred_fields else len(preferred_fields))
+
     return render_template('assign.html', student=student, relevant_instructor_days=relevant_instructors, irrelevant_instructors=irrelevant_instructors, student_assigned_days=student_assigned_days, preferred_fields=preferred_fields)
 
 @bp.route('/relevant_instructors/<int:student_id>')       
@@ -265,15 +269,22 @@ def download_students():
     filename = f"students_{timestamp}.xlsx"
 
     students = Student.query.all()
-    data = [{
-        'Name': student.name,
-        'Preferred Field 1': student.preferred_field_1.name if student.preferred_field_1 else '',
-        'Preferred Field 2': student.preferred_field_2.name if student.preferred_field_2 else '',
-        'Preferred Field 3': student.preferred_field_3.name if student.preferred_field_3 else '',
-        'Preferred Practice Area': student.preferred_practice_area
-    } for student in students]
 
+    # Prepare data for the Excel file
+    data = []
+    for student in students:
+        row = {
+            'Name': student.name,
+            'Preferred Field 1': student.preferred_field_1.name if student.preferred_field_1 else '',
+            'Preferred Field 2': student.preferred_field_2.name if student.preferred_field_2 else '',
+            'Preferred Field 3': student.preferred_field_3.name if student.preferred_field_3 else '',
+            'Preferred Practice Area': student.preferred_practice_area
+        }
+        data.append(row)
+
+    # Create a DataFrame
     df = pd.DataFrame(data)
+
     output = io.BytesIO()
     writer = pd.ExcelWriter(output, engine='xlsxwriter')
     df.to_excel(writer, index=False, sheet_name='Students')
@@ -281,7 +292,7 @@ def download_students():
     output.seek(0)
 
     return send_file(output, download_name=filename, as_attachment=True)
-
+    
 @bp.route('/download_assignments')
 def download_assignments():
     timestamp = datetime.now().strftime("%d_%m_%y_%H_%M")
@@ -354,7 +365,9 @@ def process_student_file(filepath):
     for _, row in df.iterrows():
         new_student = Student(
             name=row['Name'],
-            preferred_fields=row['Preferred Fields'],
+            preferred_field_1=Field.query.filter_by(name=row['Preferred Field 1']).first(),
+            preferred_field_2=Field.query.filter_by(name=row['Preferred Field 2']).first(),
+            preferred_field_3=Field.query.filter_by(name=row['Preferred Field 3']).first(),
             preferred_practice_area=row['Preferred Practice Area']
         )
         db.session.add(new_student)
