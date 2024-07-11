@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block head %}
+<style>
+    {% for practice_location, color in practice_location_colors.items() %}
+    .color-{{ practice_location|replace(" ", "-")|replace(".", "")|replace("/", "")|replace(",", "")|replace("(", "")|replace(")", "")|lower() }} {
+        background-color: {{ color }};
+    }
+    {% endfor %}
+</style>
+{% endblock %}
+
+{% block content %}
+<h1 class="mb-4">Assignments View</h1>
+<table class="table table-bordered">
+    <thead class="thead-light">
+        <tr>
+            <th>Student Name</th>
+            {% for day in days_of_week %}
+            <th>{{ day }}</th>
+            {% endfor %}
+        </tr>
+    </thead>
+    <tbody>
+        {% for student_name, days in assignments_data.items() %}
+        <tr>
+            <td>{{ student_name }}</td>
+            {% for day in days_of_week %}
+            <td class="{{ days[day].color_class if days[day] else '' }}">
+                {{ days[day].text if days[day] else '' }}
+            </td>
+            {% endfor %}
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

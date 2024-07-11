@@ -6,6 +6,12 @@ import pandas as pd
 import io
 import os
 from datetime import datetime
+from collections import defaultdict
+import random
+
+def generate_color():
+    r = lambda: random.randint(0, 255)
+    return f'#{r():02X}{r():02X}{r():02X}'
 
 bp = Blueprint('main', __name__)
 
@@ -421,3 +427,29 @@ def remove_assignment(assignment_id):
     db.session.delete(assignment)
     db.session.commit()
     return redirect(url_for('main.current_assignments'))
+
+import base64
+
+@bp.route('/assignments_view')
+def assignments_view():
+    students = Student.query.all()
+    days_of_week = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת']
+    
+    assignments_data = {student.name: {day: None for day in days_of_week} for student in students}
+    practice_location_colors = defaultdict(generate_color)
+    
+    assignments = Assignment.query.all()
+    
+    for assignment in assignments:
+        student_name = assignment.student.name
+        day = assignment.assigned_day
+        instructor_name = assignment.instructor.name
+        practice_location = assignment.instructor.practice_location
+        color = practice_location_colors[practice_location]
+        encoded_location = base64.urlsafe_b64encode(practice_location.encode()).decode('utf-8').rstrip('=')
+        assignments_data[student_name][day] = {
+            'text': f"{instructor_name} - {practice_location}",
+            'color_class': f"color-{encoded_location}"
+        }
+    
+    return render_template('assignments_view.html', assignments_data=assignments_data, days_of_week=days_of_week, practice_location_colors=practice_location_colors)
