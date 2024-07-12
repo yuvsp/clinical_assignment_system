@@ -4,24 +4,21 @@
 <h1 class="mb-4">Fields</h1>
 
 <!-- Buttons for download, upload, and add -->
-<div class="mb-4">
-    <a href="{{ url_for('main.download_fields') }}" class="btn btn-success">Download Fields</a>
-    
-    <!-- Upload form -->
-    <form action="{{ url_for('main.upload_fields') }}" method="post" enctype="multipart/form-data" class="d-inline-block">
-        <input type="file" name="file" id="file" class="d-inline-block">
-        <button type="submit" class="btn btn-primary">Import Fields Records</button>
-    </form>
-
-    <a href="{{ url_for('main.add_field') }}" class="btn btn-info">Add Field</a>
-</div>
+<a href="{{ url_for('main.add_field') }}" class="btn btn-primary mb-3">Add New Field</a>
+<a href="{{ url_for('main.download_fields') }}" class="btn btn-primary mb-3">Download Excel</a>
+<form action="{{ url_for('main.upload_fields') }}" method="post" enctype="multipart/form-data">
+    <div class="form-group">
+        <input type="file" class="form-control-file" name="file" required>
+    </div>
+    <button type="submit" class="btn btn-primary">Import Fields Records</button>
+</form>
 
 <!-- Table to display fields -->
-<table class="table table-bordered">
+<table class="table table-bordered mt-4">
     <thead class="thead-light">
         <tr>
             <th>Name</th>
-            <th>Color</th>
+            <th style="width: 50px;">Color</th>
         </tr>
     </thead>
     <tbody>

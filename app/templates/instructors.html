@@ -2,15 +2,13 @@
 
 {% block content %}
 <h1 class="mb-4">Instructors</h1>
-<a href="{{ url_for('main.add_instructor') }}" class="btn btn-primary mb-3">Add New Instructor</a>
-<a href="{{ url_for('main.download_instructors') }}" class="btn btn-primary mb-3">Download Excel</a>
-<form action="{{ url_for('main.upload_instructors') }}" method="post" enctype="multipart/form-data">
-    <div class="form-group">
-        <input type="file" class="form-control-file" name="file" required>
-    </div>
-    <button type="submit" class="btn btn-primary">Import Instructors Records</button>
+<a href="{{ url_for('main.add_instructor') }}" class="btn btn-primary mb-4">Add Instructor</a>
+<a href="{{ url_for('main.download_instructors') }}" class="btn btn-success mb-4">Download Excel</a>
+<form action="{{ url_for('main.upload_instructors') }}" method="post" enctype="multipart/form-data" class="mb-4">
+    <input type="file" name="file" class="form-control-file mb-2" required>
+    <button type="submit" class="btn btn-warning">Import Instructor Records</button>
 </form>
-<table class="table table-bordered mt-4">
+<table class="table table-bordered">
     <thead class="thead-light">
         <tr>
             <th>Name</th>
@@ -24,6 +22,7 @@
             <th>Years of Experience</th>
             <th>Available Days to Assign</th>
             <th>Max Students per Day</th>
+            <th>Color</th> <!-- Add this line -->
         </tr>
     </thead>
     <tbody>
@@ -40,6 +39,7 @@
             <td>{{ instructor.years_of_experience }}</td>
             <td>{{ instructor.available_days_to_assign }}</td>
             <td>{{ instructor.max_students_per_day }}</td>
+            <td style="background-color: {{ instructor.color }};">{{ instructor.color }}</td> <!-- Add this line -->
         </tr>
         {% endfor %}
     </tbody>

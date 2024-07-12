@@ -1,8 +1,8 @@
-"""Initial migration
+"""Add color to ClinicalInstructor model
 
-Revision ID: 87e9265739c4
+Revision ID: 15f9e1c7012d
 Revises: 
-Create Date: 2024-07-12 15:40:56.917686
+Create Date: 2024-07-12 16:56:19.916095
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '87e9265739c4'
+revision = '15f9e1c7012d'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -38,6 +38,7 @@ def upgrade():
     sa.Column('years_of_experience', sa.Integer(), nullable=False),
     sa.Column('available_days_to_assign', sa.String(length=100), nullable=False),
     sa.Column('max_students_per_day', sa.Integer(), nullable=False),
+    sa.Column('color', sa.String(length=7), nullable=False),
     sa.ForeignKeyConstraint(['area_of_expertise_id'], ['field.id'], ),
     sa.PrimaryKeyConstraint('id')
     )

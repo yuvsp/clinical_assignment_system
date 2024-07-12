@@ -65,18 +65,14 @@
             <input class="form-check-input" type="checkbox" value="חמישי" id="thursday" name="available_days_to_assign">
             <label class="form-check-label" for="thursday">חמישי</label>
         </div>
-        <div class="form-check">
-            <input class="form-check-input" type="checkbox" value="שישי" id="friday" name="available_days_to_assign">
-            <label class="form-check-label" for="friday">שישי</label>
-        </div>
-        <div class="form-check">
-            <input class="form-check-input" type="checkbox" value="שבת" id="saturday" name="available_days_to_assign">
-            <label class="form-check-label" for="saturday">שבת</label>
-        </div>
     </div>
     <div class="form-group">
         <label for="max_students_per_day">Max Students per Day:</label>
         <input type="number" class="form-control" id="max_students_per_day" name="max_students_per_day" required>
+    </div>
+    <div class="form-group">
+        <label for="color">Color:</label>
+        <input type="color" class="form-control" id="color" name="color" required value="#FFFFFF"> <!-- Add this line -->
     </div>
     <button type="submit" class="btn btn-primary">Add Instructor</button>
 </form>

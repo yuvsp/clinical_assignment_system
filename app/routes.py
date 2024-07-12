@@ -8,6 +8,7 @@ import os
 from datetime import datetime
 from collections import defaultdict
 import random
+import base64
 
 # def generate_color():
 #     r = lambda: random.randint(0, 255)
@@ -97,26 +98,41 @@ def add_field():
 def add_instructor():
     fields = Field.query.all()
     if request.method == 'POST':
-        available_days = request.form.getlist('available_days_to_assign')
-        available_days_str = ','.join(available_days)
+        name = request.form['name']
+        practice_location = request.form['practice_location']
+        area_of_expertise_id = request.form['area_of_expertise']
+        city = request.form['city']
+        address = request.form['address']
+        phone = request.form['phone']
+        email = request.form['email']
+        relevant_semesters = request.form['relevant_semesters']
+        years_of_experience = request.form['years_of_experience']
+        available_days_to_assign = ','.join(request.form.getlist('available_days_to_assign'))
+        max_students_per_day = request.form['max_students_per_day']
+        color = request.form['color']  # Add this line
 
         new_instructor = ClinicalInstructor(
-            name=request.form['name'],
-            practice_location=request.form['practice_location'],
-            area_of_expertise_id=request.form['area_of_expertise'],
-            city=request.form['city'],
-            address=request.form['address'],
-            phone=request.form['phone'],
-            email=request.form['email'],
-            relevant_semesters=request.form['relevant_semesters'],
-            years_of_experience=request.form['years_of_experience'],
-            available_days_to_assign=available_days_str,
-            max_students_per_day=request.form['max_students_per_day']
+            name=name,
+            practice_location=practice_location,
+            area_of_expertise_id=area_of_expertise_id,
+            city=city,
+            address=address,
+            phone=phone,
+            email=email,
+            relevant_semesters=relevant_semesters,
+            years_of_experience=years_of_experience,
+            available_days_to_assign=available_days_to_assign,
+            max_students_per_day=max_students_per_day,
+            color=color  # Add this line
         )
+
         db.session.add(new_instructor)
         db.session.commit()
+
         return redirect(url_for('main.instructors_view'))
+
     return render_template('add_instructor.html', fields=fields)
+
 
 @bp.route('/add_student', methods=['GET', 'POST'])
 def add_student():
@@ -270,7 +286,8 @@ def download_instructors():
         'Relevant Semesters': instructor.relevant_semesters,
         'Years of Experience': instructor.years_of_experience,
         'Available Days to Assign': instructor.available_days_to_assign,
-        'Max Students per Day': instructor.max_students_per_day
+        'Max Students Per Day': instructor.max_students_per_day,
+        'Color': instructor.color
     } for instructor in instructors]
 
     df = pd.DataFrame(data)
@@ -412,12 +429,37 @@ def upload_instructors():
 
 def process_instructor_file(filepath):
     df = pd.read_excel(filepath)
+    
+    # Define the expected column names
+    expected_columns = {
+        'Name': 'name',
+        'Practice Location': 'practice_location',
+        'Area of Expertise': 'area_of_expertise_id',
+        'City': 'city',
+        'Address': 'address',
+        'Phone': 'phone',
+        'Email': 'email',
+        'Relevant Semesters': 'relevant_semesters',
+        'Years of Experience': 'years_of_experience',
+        'Available Days to Assign': 'available_days_to_assign',
+        'Max Students Per Day': 'max_students_per_day',
+        'Color': 'color'
+    }
+    
+    # Check if all expected columns are present
+    missing_columns = [col for col in expected_columns.keys() if col not in df.columns]
+    if missing_columns:
+        raise KeyError(f"Missing columns in the uploaded file: {', '.join(missing_columns)}")
+    
     # Clear existing records
     ClinicalInstructor.query.delete()
     db.session.commit()
 
     # Add new records from the Excel file
     for _, row in df.iterrows():
+        color = row.get('Color')
+        if not color or not isinstance(color, str) or len(color) != 7 or not color.startswith('#'):
+            color = generate_color()
         new_instructor = ClinicalInstructor(
             name=row['Name'],
             practice_location=row['Practice Location'],
@@ -429,7 +471,8 @@ def process_instructor_file(filepath):
             relevant_semesters=row['Relevant Semesters'],
             years_of_experience=row['Years of Experience'],
             available_days_to_assign=row['Available Days to Assign'],
-            max_students_per_day=row['Max Students per Day']
+            max_students_per_day=row['Max Students Per Day'],
+            color=color
         )
         db.session.add(new_instructor)
     db.session.commit()
@@ -441,17 +484,13 @@ def remove_assignment(assignment_id):
     db.session.commit()
     return redirect(url_for('main.current_assignments'))
 
-import base64
-
 @bp.route('/assignments_view')
 def assignments_view():
     students = Student.query.all()
     days_of_week = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי']
     
     assignments_data = {student.name: {day: None for day in days_of_week} for student in students}
-    
-    fields = Field.query.all()
-    practice_location_colors = {field.name: field.color for field in fields}
+    instructor_colors = {instructor.name: instructor.color for instructor in ClinicalInstructor.query.all()}
     
     assignments = Assignment.query.all()
     
@@ -461,13 +500,13 @@ def assignments_view():
         instructor_name = assignment.instructor.name
         practice_location = assignment.instructor.practice_location
         area_of_expertise = assignment.instructor.area_of_expertise.name
-        color = practice_location_colors.get(practice_location, '#000000')  # Default to black if not in fixed colors
+        color_class = f"color-{instructor_name.replace(' ', '-').replace('.', '').lower()}"
         assignments_data[student_name][day] = {
             'text': f"{instructor_name} - {practice_location} - {area_of_expertise}",
-            'color_class': f"color-{practice_location.replace(' ', '-').replace('.', '').lower()}"
+            'color_class': color_class
         }
     
-    return render_template('assignments_view.html', assignments_data=assignments_data, days_of_week=days_of_week, practice_location_colors=practice_location_colors)
+    return render_template('assignments_view.html', assignments_data=assignments_data, days_of_week=days_of_week, instructor_colors=instructor_colors)
 
 @bp.route('/download_fields')
 def download_fields():

@@ -2,8 +2,8 @@
 
 {% block head %}
 <style>
-    {% for practice_location, color in practice_location_colors.items() %}
-    .color-{{ practice_location|replace(" ", "-")|replace(".", "")|replace("/", "")|replace(",", "")|replace("(", "")|replace(")", "")|lower() }} {
+    {% for instructor_name, color in instructor_colors.items() %}
+    .color-{{ instructor_name|replace(" ", "-")|replace(".", "")|replace("/", "")|replace(",", "")|replace("(", "")|replace(")", "")|lower() }} {
         background-color: {{ color }};
     }
     {% endfor %}
@@ -28,7 +28,7 @@
             {% for day in days_of_week %}
             <td class="{{ days[day].color_class if days[day] else '' }}">
                 {% if days[day] %}
-                <div style="color: {{ practice_location_colors[days[day].text.split(' - ')[1]] }};">
+                <div style="color: {{ instructor_colors[days[day].text.split(' - ')[0]] }};">
                     {{ days[day].text }}
                 </div>
                 {% endif %}
