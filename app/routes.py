@@ -1,11 +1,30 @@
 from flask import Blueprint, render_template, request, redirect, url_for, send_file, jsonify, flash
 from werkzeug.utils import secure_filename
 from app import db
-from app.models import ClinicalInstructor, Student, Assignment
+from app.models import ClinicalInstructor, Student, Assignment, Field
 import pandas as pd
 import io
 import os
 from datetime import datetime
+from collections import defaultdict
+import random
+import base64
+
+# def generate_color():
+#     r = lambda: random.randint(0, 255)
+#     return f'#{r():02X}{r():02X}{r():02X}'
+
+def generate_color():
+    return "#{:06x}".format(random.randint(0, 0xFFFFFF))
+
+# FIXED_COLORS = {
+#     'אדלר': '#CB2267',
+#     'תדהר': '#34a853',
+#     'המרכז הרפואי': '#4285f4',
+#     'בניין אור': '#fbbc05',
+#     'בית חולים': '#ea4335'
+# }
+
 
 bp = Blueprint('main', __name__)
 
@@ -15,10 +34,8 @@ ALLOWED_EXTENSIONS = {'xlsx'}
 if not os.path.exists(UPLOAD_FOLDER): 
     os.makedirs(UPLOAD_FOLDER)
 
-
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
 
 @bp.route('/')
 def main_view():
@@ -33,7 +50,11 @@ def current_assignments():
     for student in students:
         student_assignments[student.id] = {
             'name': student.name,
-            'preferred_fields': student.preferred_fields.split(','),
+            'preferred_fields': [
+                student.preferred_field_1.name if student.preferred_field_1 else '',
+                student.preferred_field_2.name if student.preferred_field_2 else '',
+                student.preferred_field_3.name if student.preferred_field_3 else ''
+            ],
             'assignments': [None, None, None]  # Placeholder for three assignments
         }
 
@@ -57,51 +78,90 @@ def students_view():
     students = Student.query.all()
     return render_template('students.html', students=students)
 
+@bp.route('/fields')
+def fields_view():
+    fields = Field.query.all()
+    return render_template('fields.html', fields=fields)
+
+@bp.route('/add_field', methods=['GET', 'POST'])
+def add_field():
+    if request.method == 'POST':
+        name = request.form['name']
+        color = generate_color()
+        new_field = Field(name=name, color=color)
+        db.session.add(new_field)
+        db.session.commit()
+        return redirect(url_for('main.fields_view'))
+    return render_template('add_field.html')
+
 @bp.route('/add_instructor', methods=['GET', 'POST'])
 def add_instructor():
+    fields = Field.query.all()
     if request.method == 'POST':
-        available_days = request.form.getlist('available_days_to_assign')
-        available_days_str = ','.join(available_days)
+        name = request.form['name']
+        practice_location = request.form['practice_location']
+        area_of_expertise_id = request.form['area_of_expertise']
+        city = request.form['city']
+        address = request.form['address']
+        phone = request.form['phone']
+        email = request.form['email']
+        relevant_semesters = request.form['relevant_semesters']
+        years_of_experience = request.form['years_of_experience']
+        available_days_to_assign = ','.join(request.form.getlist('available_days_to_assign'))
+        max_students_per_day = request.form['max_students_per_day']
+        color = request.form['color']  # Add this line
 
         new_instructor = ClinicalInstructor(
-            name=request.form['name'],
-            practice_location=request.form['practice_location'],
-            area_of_expertise=request.form['area_of_expertise'],
-            city=request.form['city'],
-            address=request.form['address'],
-            phone=request.form['phone'],
-            email=request.form['email'],
-            relevant_semesters=request.form['relevant_semesters'],
-            years_of_experience=request.form['years_of_experience'],
-            available_days_to_assign=available_days_str,
-            max_students_per_day=request.form['max_students_per_day']
+            name=name,
+            practice_location=practice_location,
+            area_of_expertise_id=area_of_expertise_id,
+            city=city,
+            address=address,
+            phone=phone,
+            email=email,
+            relevant_semesters=relevant_semesters,
+            years_of_experience=years_of_experience,
+            available_days_to_assign=available_days_to_assign,
+            max_students_per_day=max_students_per_day,
+            color=color  # Add this line
         )
+
         db.session.add(new_instructor)
         db.session.commit()
+
         return redirect(url_for('main.instructors_view'))
-    return render_template('add_instructor.html')
+
+    return render_template('add_instructor.html', fields=fields)
+
 
 @bp.route('/add_student', methods=['GET', 'POST'])
 def add_student():
+    fields = Field.query.all()
     if request.method == 'POST':
         new_student = Student(
             name=request.form['name'],
-            preferred_fields=','.join([
-                request.form['preferred_fields_1'],
-                request.form['preferred_fields_2'],
-                request.form['preferred_fields_3']
-            ]),
+            preferred_field_id_1=request.form['preferred_fields_1'],
+            preferred_field_id_2=request.form['preferred_fields_2'],
+            preferred_field_id_3=request.form['preferred_fields_3'],
             preferred_practice_area=request.form['preferred_practice_area']
         )
         db.session.add(new_student)
         db.session.commit()
         return redirect(url_for('main.students_view'))
-    return render_template('add_student.html')
+    return render_template('add_student.html', fields=fields)
 
 @bp.route('/assign/<int:student_id>', methods=['GET', 'POST'])
 def assign_instructor(student_id):
     student = Student.query.get(student_id)
     if request.method == 'POST':
+        if 'cancel_assignment_id' in request.form:
+            assignment_id = request.form['cancel_assignment_id']
+            assignment = Assignment.query.get(assignment_id)
+            if assignment:
+                db.session.delete(assignment)
+                db.session.commit()
+            return redirect(url_for('main.current_assignments'))
+
         instructor_id = request.form['instructor_id']
         assigned_day = request.form['assigned_day']
 
@@ -115,7 +175,11 @@ def assign_instructor(student_id):
         db.session.commit()
         return redirect(url_for('main.current_assignments'))
 
-    preferred_fields = student.preferred_fields.split(',')
+    preferred_fields = [
+        student.preferred_field_1.name if student.preferred_field_1 else '',
+        student.preferred_field_2.name if student.preferred_field_2 else '',
+        student.preferred_field_3.name if student.preferred_field_3 else ''
+    ]
     all_instructors = ClinicalInstructor.query.all()
     relevant_instructors = []
     irrelevant_instructors = []
@@ -128,26 +192,39 @@ def assign_instructor(student_id):
         available_days = instructor.available_days_to_assign.split(',')
         for day in available_days:
             assigned_count = Assignment.query.filter_by(instructor_id=instructor.id, assigned_day=day).count()
-            if assigned_count < instructor.max_students_per_day:
-                if instructor.area_of_expertise in preferred_fields:
-                    if day not in student_assigned_days:
-                        relevant_instructors.append((instructor, day))
-                    else:
-                        irrelevant_instructors.append((instructor, day, "Student already has assignment at this day"))
+            if day in student_assigned_days:
+                student_already_assigned_to_instructor = any(assignment.instructor_id == instructor.id for assignment in student_assignments)
+                if student_already_assigned_to_instructor:
+                    assignment = next((assignment for assignment in student_assignments if assignment.instructor_id == instructor.id and assignment.assigned_day == day), None)
+                    relevant_instructors.append((instructor, day, assignment, True))
+                else:
+                    irrelevant_instructors.append((instructor, day, "Student already has assignment at this day"))
+            elif assigned_count < instructor.max_students_per_day:
+                if instructor.area_of_expertise.name in preferred_fields:
+                    relevant_instructors.append((instructor, day, None, False))
                 else:
                     irrelevant_instructors.append((instructor, day, "Field is not relevant"))
             else:
                 irrelevant_instructors.append((instructor, day, "Instructor is booked for the selected day"))
 
-    return render_template('assign.html', student=student, relevant_instructor_days=relevant_instructors, irrelevant_instructors=irrelevant_instructors, student_assigned_days=student_assigned_days)
+    # Sort relevant instructors by preferred fields order
+    relevant_instructors.sort(key=lambda x: preferred_fields.index(x[0].area_of_expertise.name) if x[0].area_of_expertise.name in preferred_fields else len(preferred_fields))
+    irrelevant_instructors.sort(key=lambda x: preferred_fields.index(x[0].area_of_expertise.name) if x[0].area_of_expertise.name in preferred_fields else len(preferred_fields))
 
-@bp.route('/relevant_instructors/<int:student_id>')
+    return render_template('assign.html', student=student, relevant_instructor_days=relevant_instructors, irrelevant_instructors=irrelevant_instructors, student_assigned_days=student_assigned_days, preferred_fields=preferred_fields)
+
+@bp.route('/relevant_instructors/<int:student_id>')       
 def relevant_instructors(student_id):
     student = Student.query.get(student_id)
     if not student:
         return jsonify({'error': 'Student not found'}), 404
 
-    preferred_fields = student.preferred_fields.split(',')
+    preferred_fields = [
+        student.preferred_field_1.name if student.preferred_field_1 else '',
+        student.preferred_field_2.name if student.preferred_field_2 else '',
+        student.preferred_field_3.name if student.preferred_field_3 else ''
+    ]
+
     all_instructors = ClinicalInstructor.query.all()
     relevant_instructors = []
     irrelevant_instructors = []
@@ -161,15 +238,34 @@ def relevant_instructors(student_id):
         for day in available_days:
             assigned_count = Assignment.query.filter_by(instructor_id=instructor.id, assigned_day=day).count()
             if assigned_count < instructor.max_students_per_day:
-                if instructor.area_of_expertise in preferred_fields:
+                if instructor.area_of_expertise.name in preferred_fields:
                     if day not in student_assigned_days:
-                        relevant_instructors.append({'name': instructor.name, 'area_of_expertise': instructor.area_of_expertise, 'day': day})
+                        relevant_instructors.append({
+                            'name': instructor.name,
+                            'area_of_expertise': instructor.area_of_expertise.name,
+                            'day': day
+                        })
                     else:
-                        irrelevant_instructors.append({'name': instructor.name, 'area_of_expertise': instructor.area_of_expertise, 'day': day, 'reason': "Student already has an instructor assigned for this day"})
+                        irrelevant_instructors.append({
+                            'name': instructor.name,
+                            'area_of_expertise': instructor.area_of_expertise.name,
+                            'day': day,
+                            'reason': "Student already has an instructor assigned for this day"
+                        })
                 else:
-                    irrelevant_instructors.append({'name': instructor.name, 'area_of_expertise': instructor.area_of_expertise, 'day': day, 'reason': "Field is not relevant"})
+                    irrelevant_instructors.append({
+                        'name': instructor.name,
+                        'area_of_expertise': instructor.area_of_expertise.name,
+                        'day': day,
+                        'reason': "Field is not relevant"
+                    })
             else:
-                irrelevant_instructors.append({'name': instructor.name, 'area_of_expertise': instructor.area_of_expertise, 'day': day, 'reason': "Instructor is booked for the selected day"})
+                irrelevant_instructors.append({
+                    'name': instructor.name,
+                    'area_of_expertise': instructor.area_of_expertise.name,
+                    'day': day,
+                    'reason': "Instructor is booked for the selected day"
+                })
 
     return jsonify({'relevant_instructors': relevant_instructors, 'irrelevant_instructors': irrelevant_instructors})
 
@@ -182,7 +278,7 @@ def download_instructors():
     data = [{
         'Name': instructor.name,
         'Practice Location': instructor.practice_location,
-        'Area of Expertise': instructor.area_of_expertise,
+        'Area of Expertise': instructor.area_of_expertise.name,
         'City': instructor.city,
         'Address': instructor.address,
         'Phone': instructor.phone,
@@ -190,7 +286,8 @@ def download_instructors():
         'Relevant Semesters': instructor.relevant_semesters,
         'Years of Experience': instructor.years_of_experience,
         'Available Days to Assign': instructor.available_days_to_assign,
-        'Max Students per Day': instructor.max_students_per_day
+        'Max Students Per Day': instructor.max_students_per_day,
+        'Color': instructor.color
     } for instructor in instructors]
 
     df = pd.DataFrame(data)
@@ -208,13 +305,22 @@ def download_students():
     filename = f"students_{timestamp}.xlsx"
 
     students = Student.query.all()
-    data = [{
-        'Name': student.name,
-        'Preferred Fields': student.preferred_fields,
-        'Preferred Practice Area': student.preferred_practice_area
-    } for student in students]
 
+    # Prepare data for the Excel file
+    data = []
+    for student in students:
+        row = {
+            'Name': student.name,
+            'Preferred Field 1': student.preferred_field_1.name if student.preferred_field_1 else '',
+            'Preferred Field 2': student.preferred_field_2.name if student.preferred_field_2 else '',
+            'Preferred Field 3': student.preferred_field_3.name if student.preferred_field_3 else '',
+            'Preferred Practice Area': student.preferred_practice_area
+        }
+        data.append(row)
+
+    # Create a DataFrame
     df = pd.DataFrame(data)
+
     output = io.BytesIO()
     writer = pd.ExcelWriter(output, engine='xlsxwriter')
     df.to_excel(writer, index=False, sheet_name='Students')
@@ -222,7 +328,7 @@ def download_students():
     output.seek(0)
 
     return send_file(output, download_name=filename, as_attachment=True)
-
+    
 @bp.route('/download_assignments')
 def download_assignments():
     timestamp = datetime.now().strftime("%d_%m_%y_%H_%M")
@@ -239,14 +345,14 @@ def download_assignments():
             if i < len(student_assignments):
                 assignment = student_assignments[i]
                 row = {
-                    'Student Name': f"{student.name} #{i + 1} [ {student.preferred_fields} ]",
+                    'Student Name': f"{student.name} #{i + 1} [ {', '.join([student.preferred_field_1.name if student.preferred_field_1 else '', student.preferred_field_2.name if student.preferred_field_2 else '', student.preferred_field_3.name if student.preferred_field_3 else ''])} ]",
                     'Assigned Instructor': assignment.instructor.name,
-                    'Instructor Field': assignment.instructor.area_of_expertise,
+                    'Instructor Field': assignment.instructor.area_of_expertise.name,
                     'Assigned Day': assignment.assigned_day
                 }
             else:
                 row = {
-                    'Student Name': f"{student.name} #{i + 1} [ {student.preferred_fields} ]",
+                    'Student Name': f"{student.name} #{i + 1} [ {', '.join([student.preferred_field_1.name if student.preferred_field_1 else '', student.preferred_field_2.name if student.preferred_field_2 else '', student.preferred_field_3.name if student.preferred_field_3 else ''])} ]",
                     'Assigned Instructor': "Not assigned yet",
                     'Instructor Field': "",
                     'Assigned Day': ""
@@ -295,7 +401,9 @@ def process_student_file(filepath):
     for _, row in df.iterrows():
         new_student = Student(
             name=row['Name'],
-            preferred_fields=row['Preferred Fields'],
+            preferred_field_1=Field.query.filter_by(name=row['Preferred Field 1']).first(),
+            preferred_field_2=Field.query.filter_by(name=row['Preferred Field 2']).first(),
+            preferred_field_3=Field.query.filter_by(name=row['Preferred Field 3']).first(),
             preferred_practice_area=row['Preferred Practice Area']
         )
         db.session.add(new_student)
@@ -321,16 +429,41 @@ def upload_instructors():
 
 def process_instructor_file(filepath):
     df = pd.read_excel(filepath)
+    
+    # Define the expected column names
+    expected_columns = {
+        'Name': 'name',
+        'Practice Location': 'practice_location',
+        'Area of Expertise': 'area_of_expertise_id',
+        'City': 'city',
+        'Address': 'address',
+        'Phone': 'phone',
+        'Email': 'email',
+        'Relevant Semesters': 'relevant_semesters',
+        'Years of Experience': 'years_of_experience',
+        'Available Days to Assign': 'available_days_to_assign',
+        'Max Students Per Day': 'max_students_per_day',
+        'Color': 'color'
+    }
+    
+    # Check if all expected columns are present
+    missing_columns = [col for col in expected_columns.keys() if col not in df.columns]
+    if missing_columns:
+        raise KeyError(f"Missing columns in the uploaded file: {', '.join(missing_columns)}")
+    
     # Clear existing records
     ClinicalInstructor.query.delete()
     db.session.commit()
 
     # Add new records from the Excel file
     for _, row in df.iterrows():
+        color = row.get('Color')
+        if not color or not isinstance(color, str) or len(color) != 7 or not color.startswith('#'):
+            color = generate_color()
         new_instructor = ClinicalInstructor(
             name=row['Name'],
             practice_location=row['Practice Location'],
-            area_of_expertise=row['Area of Expertise'],
+            area_of_expertise_id=Field.query.filter_by(name=row['Area of Expertise']).first().id,
             city=row['City'],
             address=row['Address'],
             phone=row['Phone'],
@@ -338,7 +471,8 @@ def process_instructor_file(filepath):
             relevant_semesters=row['Relevant Semesters'],
             years_of_experience=row['Years of Experience'],
             available_days_to_assign=row['Available Days to Assign'],
-            max_students_per_day=row['Max Students per Day']
+            max_students_per_day=row['Max Students Per Day'],
+            color=color
         )
         db.session.add(new_instructor)
     db.session.commit()
@@ -349,3 +483,75 @@ def remove_assignment(assignment_id):
     db.session.delete(assignment)
     db.session.commit()
     return redirect(url_for('main.current_assignments'))
+
+@bp.route('/assignments_view')
+def assignments_view():
+    students = Student.query.all()
+    days_of_week = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי']
+    
+    assignments_data = {student.name: {day: None for day in days_of_week} for student in students}
+    instructor_colors = {instructor.name: instructor.color for instructor in ClinicalInstructor.query.all()}
+    
+    assignments = Assignment.query.all()
+    
+    for assignment in assignments:
+        student_name = assignment.student.name
+        day = assignment.assigned_day
+        instructor_name = assignment.instructor.name
+        practice_location = assignment.instructor.practice_location
+        area_of_expertise = assignment.instructor.area_of_expertise.name
+        color_class = f"color-{instructor_name.replace(' ', '-').replace('.', '').lower()}"
+        assignments_data[student_name][day] = {
+            'text': f"{instructor_name} - {practice_location} - {area_of_expertise}",
+            'color_class': color_class
+        }
+    
+    return render_template('assignments_view.html', assignments_data=assignments_data, days_of_week=days_of_week, instructor_colors=instructor_colors)
+
+@bp.route('/download_fields')
+def download_fields():
+    timestamp = datetime.now().strftime("%d_%m_%y_%H_%M")
+    filename = f"fields_{timestamp}.xlsx"
+
+    fields = Field.query.all()
+    data = [{'Name': field.name, 'Color': field.color} for field in fields]
+
+    df = pd.DataFrame(data)
+    output = io.BytesIO()
+    writer = pd.ExcelWriter(output, engine='xlsxwriter')
+    df.to_excel(writer, index=False, sheet_name='Fields')
+    writer.close()
+    output.seek(0)
+
+    return send_file(output, download_name=filename, as_attachment=True)
+
+@bp.route('/upload_fields', methods=['POST'])
+def upload_fields():
+    if 'file' not in request.files:
+        return redirect(url_for('main.fields_view'))
+    file = request.files['file']
+    if file.filename == '':
+        return redirect(url_for('main.fields_view'))
+    if file and allowed_file(file.filename):
+        filename = secure_filename(file.filename)
+        filepath = os.path.join(UPLOAD_FOLDER, filename)
+        file.save(filepath)
+        process_fields_file(filepath)
+        return redirect(url_for('main.fields_view'))
+    return redirect(url_for('main.fields_view'))
+
+def process_fields_file(filepath):
+    data = pd.read_excel(filepath)
+    
+    # Clear existing records
+    Field.query.delete()
+    db.session.commit()
+    
+    for index, row in data.iterrows():
+        field_name = row['Name']
+        field_color = row.get('Color', None)
+        if not field_color or not isinstance(field_color, str) or len(field_color) != 7 or not field_color.startswith('#'):
+            field_color = generate_color()
+        new_field = Field(name=field_name, color=field_color)
+        db.session.add(new_field)
+    db.session.commit()

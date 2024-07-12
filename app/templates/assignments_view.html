@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+
+{% block content %}
+<h1 class="mb-4">Assignments View</h1>
+<table class="table table-bordered">
+    <thead class="thead-light">
+        <tr>
+            <th>Student Name</th>
+            {% for day in days_of_week %}
+            <th>{{ day }}</th>
+            {% endfor %}
+        </tr>
+    </thead>
+    <tbody>
+        {% for student_name, days in assignments_data.items() %}
+        <tr>
+            <td>{{ student_name }}</td>
+            {% for day in days_of_week %}
+            <td>
+                {% if days[day] %}
+                <div style="background-color: {{ instructor_colors[days[day].text.split(' - ')[0]] }};">
+                    {{ days[day].text }}
+                </div>
+                {% endif %}
+            </td>
+            {% endfor %}
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

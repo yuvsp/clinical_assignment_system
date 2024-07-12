@@ -1,5 +1,5 @@
 /* Import Google Fonts */
-@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
 
 /* Variables */
 :root {
@@ -22,52 +22,45 @@ body {
 }
 
 /* Navigation Styles */
-nav {
+.navbar {
     background-color: var(--primary-color);
-    padding: 10px;
-    text-align: center;
 }
 
-nav a {
-    color: var(--white);
-    text-decoration: none;
-    margin: 0 15px;
-    font-weight: bold;
+.navbar-brand, .nav-link {
+    color: var(--white) !important;
 }
 
-nav a:hover {
-    color: var(--secondary-color);
+.nav-link:hover {
+    color: var(--secondary-color) !important;
 }
 
 /* Content Styles */
-.content {
+.container {
     padding: 20px;
 }
 
 h1, h2, h3 {
     color: var(--primary-color);
+    font-weight: 500;
 }
 
 /* Table Styles */
-table {
-    width: 100%;
-    border-collapse: collapse;
+.table {
     margin-bottom: 20px;
+    border-collapse: separate;
+    border-spacing: 0 10px;
 }
 
-th, td {
-    border: 1px solid #dddddd;
+.table th, .table td {
     padding: 12px;
     text-align: left;
+    background-color: var(--white);
+    border-bottom: 1px solid #dddddd;
 }
 
-th {
+.table thead {
     background-color: var(--primary-color);
     color: var(--white);
-}
-
-td {
-    background-color: var(--white);
 }
 
 /* Row Styles */
@@ -80,34 +73,69 @@ td {
 }
 
 /* Button Styles */
-button, input[type="submit"] {
-    background-color: var(--primary-color);
-    color: var(--white);
-    border: none;
+button, .btn {
+    background-color: var(--primary-color) !important;
+    color: var(--white) !important;
+    border-radius: 20px;
     padding: 10px 20px;
-    cursor: pointer;
-    font-size: 16px;
+    font-weight: 500;
+    transition: background-color 0.3s ease;
+    border: none;
 }
 
-button:hover, input[type="submit"]:hover {
-    background-color: #45a049;
+button:hover, .btn:hover {
+    background-color: #45a049 !important;
+}
+
+.btn-danger {
+    background-color: var(--light-coral) !important;
+    border: none !important;
+}
+
+.btn-danger:hover {
+    background-color: #e63946 !important;
+}
+
+.table-success .btn, .table-danger .btn, .table-warning .btn {
+    border: none; /* Ensure no border for buttons in success, danger, and warning rows */
+}
+
+/* Ensure buttons inside the table cell have no padding/margin */
+.table td .btn {
+    margin: 0;
+    padding: 10px 20px;
+    border: none;
 }
 
 /* Form Styles */
+form button.btn {
+    display: block;
+  /*   width: 100%;*/
+    padding: 0.5rem;
+    margin: 0;
+    border: none;
+    background-color: #dc3545;
+    color: white;
+    text-align: center;
+    border-radius: 0.25rem;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+form button.btn:hover {
+    background-color: #c82333;
+}
+
 form {
-    background-color: var(--white);
-    padding: 20px;
-    border: 1px solid #dddddd;
-    margin-bottom: 20px;
+    margin: 0;
+    padding: 0;
 }
 
 label {
-    display: block;
-    margin-bottom: 8px;
     font-weight: bold;
 }
 
-input[type="text"], input[type="number"], select {
+input[type="text"], input[type="number"], select, input[type="email"], input[type="file"], .form-control {
     width: 100%;
     padding: 10px;
     margin-bottom: 10px;

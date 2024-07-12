@@ -1,70 +1,79 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h1>Add Instructor</h1>
+<h1 class="mb-4">Add Instructor</h1>
 <form method="post">
-    <label for="name">Name:</label>
-    <input type="text" id="name" name="name" required>
-    <label for="practice_location">Practice Location:</label>
-    <input type="text" id="practice_location" name="practice_location" required>
-    <label for="area_of_expertise">Area of Expertise:</label>
-    <input type="text" id="area_of_expertise" name="area_of_expertise" required>
-    <label for="city">City:</label>
-    <input type="text" id="city" name="city" required>
-    <label for="address">Address:</label>
-    <input type="text" id="address" name="address" required>
-    <label for="phone">Phone:</label>
-    <input type="text" id="phone" name="phone" required>
-    <label for="email">Email:</label>
-    <input type="email" id="email" name="email" required>
-    <label for="relevant_semesters">Relevant Semesters:</label>
-    <input type="text" id="relevant_semesters" name="relevant_semesters" required>
-    <label for="years_of_experience">Years of Experience:</label>
-    <input type="number" id="years_of_experience" name="years_of_experience" required>
-    
-    <label>Available Days to Assign:</label>
-    <table class="days-table">
-        <tr>
-            <td>
-                <input type="checkbox" id="sunday" name="available_days_to_assign" value="Sunday">
-                <label for="sunday">Sunday</label>
-            </td>
-            <td>
-                <input type="checkbox" id="monday" name="available_days_to_assign" value="Monday">
-                <label for="monday">Monday</label>
-            </td>
-            <td>
-                <input type="checkbox" id="tuesday" name="available_days_to_assign" value="Tuesday">
-                <label for="tuesday">Tuesday</label>
-            </td>
-            <td>
-                <input type="checkbox" id="wednesday" name="available_days_to_assign" value="Wednesday">
-                <label for="wednesday">Wednesday</label>
-            </td>
-            <td>
-                <input type="checkbox" id="thursday" name="available_days_to_assign" value="Thursday">
-                <label for="thursday">Thursday</label>
-            </td>
-        </tr>
-    </table>
-
-    <label for="max_students_per_day">Max Students per Day:</label>
-    <input type="number" id="max_students_per_day" name="max_students_per_day" value="1" required>
-    <br><br>
-    <button type="submit">Add Instructor</button>
+    <div class="form-group">
+        <label for="name">Name:</label>
+        <input type="text" class="form-control" id="name" name="name" required>
+    </div>
+    <div class="form-group">
+        <label for="practice_location">Practice Location:</label>
+        <input type="text" class="form-control" id="practice_location" name="practice_location" required>
+    </div>
+    <div class="form-group">
+        <label for="area_of_expertise">Area of Expertise:</label>
+        <select class="form-control" id="area_of_expertise" name="area_of_expertise" required>
+            {% for field in fields %}
+            <option value="{{ field.id }}">{{ field.name }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="form-group">
+        <label for="city">City:</label>
+        <input type="text" class="form-control" id="city" name="city" required>
+    </div>
+    <div class="form-group">
+        <label for="address">Address:</label>
+        <input type="text" class="form-control" id="address" name="address" required>
+    </div>
+    <div class="form-group">
+        <label for="phone">Phone:</label>
+        <input type="text" class="form-control" id="phone" name="phone" required>
+    </div>
+    <div class="form-group">
+        <label for="email">Email:</label>
+        <input type="email" class="form-control" id="email" name="email" required>
+    </div>
+    <div class="form-group">
+        <label for="relevant_semesters">Relevant Semesters:</label>
+        <input type="text" class="form-control" id="relevant_semesters" name="relevant_semesters" required>
+    </div>
+    <div class="form-group">
+        <label for="years_of_experience">Years of Experience:</label>
+        <input type="number" class="form-control" id="years_of_experience" name="years_of_experience" required>
+    </div>
+    <div class="form-group">
+        <label for="available_days_to_assign">Available Days to Assign:</label>
+        <div class="form-check">
+            <input class="form-check-input" type="checkbox" value="ראשון" id="sunday" name="available_days_to_assign">
+            <label class="form-check-label" for="sunday">ראשון</label>
+        </div>
+        <div class="form-check">
+            <input class="form-check-input" type="checkbox" value="שני" id="monday" name="available_days_to_assign">
+            <label class="form-check-label" for="monday">שני</label>
+        </div>
+        <div class="form-check">
+            <input class="form-check-input" type="checkbox" value="שלישי" id="tuesday" name="available_days_to_assign">
+            <label class="form-check-label" for="tuesday">שלישי</label>
+        </div>
+        <div class="form-check">
+            <input class="form-check-input" type="checkbox" value="רביעי" id="wednesday" name="available_days_to_assign">
+            <label class="form-check-label" for="wednesday">רביעי</label>
+        </div>
+        <div class="form-check">
+            <input class="form-check-input" type="checkbox" value="חמישי" id="thursday" name="available_days_to_assign">
+            <label class="form-check-label" for="thursday">חמישי</label>
+        </div>
+    </div>
+    <div class="form-group">
+        <label for="max_students_per_day">Max Students per Day:</label>
+        <input type="number" class="form-control" id="max_students_per_day" name="max_students_per_day" required>
+    </div>
+    <div class="form-group">
+        <label for="color">Color:</label>
+        <input type="color" class="form-control" id="color" name="color" required value="#FFFFFF"> <!-- Add this line -->
+    </div>
+    <button type="submit" class="btn btn-primary">Add Instructor</button>
 </form>
-
-<style>
-    .days-table {
-        width: 100%;
-        table-layout: fixed;
-    }
-    .days-table td {
-        text-align: center;
-        padding: 10px;
-    }
-    .days-table input[type="checkbox"] {
-        transform: scale(1.5);  /* Makes the checkboxes larger */
-    }
-</style>
 {% endblock %}

@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Students</h1>
+<a href="{{ url_for('main.add_student') }}">Add New Student</a>
+<ul>
+    {% for student in students %}
+    <li>
+        {{ student.name }} - Preferred Fields: {{ student.preferred_fields }} - Preferred Practice Area: {{ student.preferred_practice_area }}
+        <a href="{{ url_for('main.assign_instructor', student_id=student.id) }}">Assign Instructor</a>
+    </li>
+    {% endfor %}
+</ul>
+{% endblock %}
