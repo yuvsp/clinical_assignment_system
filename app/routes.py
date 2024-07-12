@@ -505,8 +505,21 @@ def assignments_view():
             'text': f"{instructor_name} - {practice_location} - {area_of_expertise}",
             'color_class': color_class
         }
+
+    # Add emoji indicators
+    student_assignments_count = {student.name: 0 for student in students}
+    for assignment in assignments:
+        student_assignments_count[assignment.student.name] += 1
+
+    student_assignments_status = {}
+    for student in students:
+        assignments_count = student_assignments_count[student.name]
+        if assignments_count >= 3:
+            student_assignments_status[student.name] = f"✅ {student.name}"
+        else:
+            student_assignments_status[student.name] = f"❌ {student.name}"
     
-    return render_template('assignments_view.html', assignments_data=assignments_data, days_of_week=days_of_week, instructor_colors=instructor_colors)
+    return render_template('assignments_view.html', assignments_data=assignments_data, days_of_week=days_of_week, instructor_colors=instructor_colors, student_assignments_status=student_assignments_status, students=students)
 
 @bp.route('/download_fields')
 def download_fields():

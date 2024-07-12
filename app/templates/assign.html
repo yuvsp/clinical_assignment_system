@@ -14,6 +14,7 @@
             </tr>
         </thead>
         <tbody>
+            {% set assignment_count = student.assignments|length %}
             {% for instructor, day, assignment, student_already_assigned_to_instructor in relevant_instructor_days %}
             <tr class="table-success">
                 <td>{{ instructor.name }}</td>
@@ -21,17 +22,13 @@
                 <td>{{ day }}</td>
                 <td>
                     {% if day in student_assigned_days %}
-                    Student already has assignment at this day
+                    Student already has assignment on this day
                     {% endif %}
                 </td>
                 <td>
-                    {% if day in student_assigned_days %}
-                    {% if student_already_assigned_to_instructor %}
+                    {% if assignment and student_already_assigned_to_instructor %}
                     <button type="submit" name="cancel_assignment_id" value="{{ assignment.id }}" class="btn btn-danger">Cancel Assignment</button>
-                    {% else %}
-                    Student already has assignment at this day
-                    {% endif %}
-                    {% else %}
+                    {% elif assignment_count < 3 %}
                     <button type="submit" name="instructor_id" value="{{ instructor.id }}" onclick="document.getElementById('assigned_day').value='{{ day }}'" class="btn btn-primary">Assign</button>
                     {% endif %}
                 </td>
@@ -44,7 +41,7 @@
                 <td style="text-decoration: line-through;">{{ day }}</td>
                 <td>{{ reason }}</td>
                 <td>
-                    {% if reason == 'Field is not relevant' %}
+                    {% if reason == 'Field is not relevant' and assignment_count < 3 %}
                     <button type="submit" name="instructor_id" value="{{ instructor.id }}" onclick="document.getElementById('assigned_day').value='{{ day }}'" class="btn btn-primary">Assign</button>
                     {% endif %}
                 </td>

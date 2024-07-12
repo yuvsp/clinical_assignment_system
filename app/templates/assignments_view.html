@@ -1,6 +1,5 @@
 {% extends "base.html" %}
 
-
 {% block content %}
 <h1 class="mb-4">Assignments View</h1>
 <table class="table table-bordered">
@@ -15,7 +14,11 @@
     <tbody>
         {% for student_name, days in assignments_data.items() %}
         <tr>
-            <td>{{ student_name }}</td>
+            <td>
+                <a href="{{ url_for('main.assign_instructor', student_id=students[loop.index0].id) }}">
+                    {{ student_assignments_status[student_name] }}
+                </a>
+            </td>
             {% for day in days_of_week %}
             <td>
                 {% if days[day] %}
