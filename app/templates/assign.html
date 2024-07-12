@@ -3,13 +3,13 @@
 {% block content %}
 <h1 class="mb-4">Assign Instructor to {{ student.name }}</h1>
 <form method="post">
-    <table class="table table-bordered">
+    <table class="table table-bordered" dir="rtl">
         <thead class="thead-light">
             <tr>
-                <th>Instructor Name</th>
-                <th>Area of Expertise</th>
-                <th>Available Day</th>
-                <th>Remark</th>
+                <th class="text-right">Instructor Name</th>
+                <th class="text-right">Area of Expertise - Instructor Name</th>
+                <th class="text-right">Available Day</th>
+                <th class="text-right">Remark</th>
                 <th>Action</th>
             </tr>
         </thead>
@@ -17,12 +17,12 @@
             {% set assignment_count = student.assignments|length %}
             {% for instructor, day, assignment, student_already_assigned_to_instructor in relevant_instructor_days %}
             <tr class="table-success">
-                <td>{{ instructor.name }}</td>
-                <td>{{ instructor.area_of_expertise.name }} [{{ instructor.practice_location }}]</td>
-                <td>{{ day }}</td>
-                <td>
+                <td class="text-right">{{ instructor.name }}</td>
+                <td class="text-right">{{ instructor.area_of_expertise.name }} - {{ instructor.name }} [{{ instructor.practice_location }}]</td>
+                <td class="text-right">{{ day }}</td>
+                <td class="text-right">
                     {% if day in student_assigned_days %}
-                    Student already has assignment on this day
+                    Student already has assignment at this day
                     {% endif %}
                 </td>
                 <td>
@@ -36,10 +36,10 @@
             {% endfor %}
             {% for instructor, day, reason in irrelevant_instructors %}
             <tr class="{% if reason == 'Field is not relevant' %}table-warning{% else %}table-danger{% endif %}">
-                <td style="text-decoration: line-through;">{{ instructor.name }}</td>
-                <td style="text-decoration: line-through;">{{ instructor.area_of_expertise.name }} [{{ instructor.practice_location }}]</td>
-                <td style="text-decoration: line-through;">{{ day }}</td>
-                <td>{{ reason }}</td>
+                <td class="text-right" style="text-decoration: line-through;">{{ instructor.name }}</td>
+                <td class="text-right" style="text-decoration: line-through;">{{ instructor.area_of_expertise.name }} ({{ instructor.name }}) [{{ instructor.practice_location }}]</td>
+                <td class="text-right" style="text-decoration: line-through;">{{ day }}</td>
+                <td class="text-right">{{ reason }}</td>
                 <td>
                     {% if reason == 'Field is not relevant' and assignment_count < 3 %}
                     <button type="submit" name="instructor_id" value="{{ instructor.id }}" onclick="document.getElementById('assigned_day').value='{{ day }}'" class="btn btn-primary">Assign</button>

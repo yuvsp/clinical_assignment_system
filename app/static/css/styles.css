@@ -178,3 +178,107 @@ input[type="text"], input[type="number"], select, input[type="email"], input[typ
 .red-background {
     background-color: var(--light-coral);
 }
+
+.even-student {
+    background-color: #f9f9f9;
+}
+
+.odd-student {
+    background-color: #b8b8b8;
+}
+.even-student:nth-child(3n+1), .even-student:nth-child(3n+2), .even-student:nth-child(3n+3) {
+    background-color: #c126b6;
+}
+
+.odd-student:nth-child(3n+1), .odd-student:nth-child(3n+2), .odd-student:nth-child(3n+3) {
+    background-color: #ea3333;
+}
+
+
+.student-group {
+    border-bottom: 2px solid #1ed637;
+}
+
+.student-group:last-child {
+    border-bottom: none;
+}
+.table-bordered {
+    margin-bottom: 20px;
+}
+
+
+
+/* 
+.table th, .table td {
+    width: 33.33%;
+}
+
+.table tbody tr:first-child th, .table tbody tr:first-child td {
+    border-top: none;
+} */
+
+.current-assignments-table {
+    border: 2px solid #333; /* Darker outer border color for distinction */
+}
+
+.current-assignments-table th, .current-assignments-table td {
+    border-width: 1px; /* Inner border width */
+    border-color: #dee2e6; /* Default Bootstrap color */
+}
+
+.current-assignments-table th, .current-assignments-table td {
+    width: 33.33%;
+}
+
+
+.text-center {
+    text-align: center;
+    vertical-align: middle;
+}
+
+.text-center form {
+    display: inline-block;
+}
+
+.text-center .student {
+    display: inline-block;
+}
+
+
+.current-assignments-table {
+    border: 2px solid #333; /* Darker outer border color for distinction */
+}
+
+.current-assignments-table th, .current-assignments-table td {
+    border-width: 1px; /* Inner border width */
+    border-color: #dee2e6; /* Default Bootstrap color */
+}
+
+.current-assignments-table th, .current-assignments-table td {
+    width: 33.33%;
+}
+
+.text-center {
+    text-align: center;
+    vertical-align: middle;
+}
+
+.text-right {
+    text-align: right;
+    direction: rtl;
+}
+
+.text-center form {
+    display: inline-block;
+}
+
+.student-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+}
+
+.student {
+    display: inline-block;
+}

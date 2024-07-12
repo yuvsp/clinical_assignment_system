@@ -10,26 +10,26 @@
     </div>
     <button type="submit" class="btn btn-primary">Import Students Records</button>
 </form>
-<table class="table table-bordered mt-4">
+<table class="table table-bordered mt-4" dir="rtl">
     <thead class="thead-light">
         <tr>
-            <th>Name</th>
-            <th>Preferred Fields</th>
-            <th>Preferred Practice Area</th>
+            <th class="text-right">Name</th>
+            <th class="text-right">Preferred Fields</th>
+            <th class="text-right">Preferred Practice Area</th>
             <th>Action</th>
         </tr>
     </thead>
     <tbody>
         {% for student in students %}
         <tr>
-            <td>{{ student.name }}</td>
-            <td>
+            <td class="text-right">{{ student.name }}</td>
+            <td class="text-right">
                 {{ student.preferred_field_1.name if student.preferred_field_1 else '' }},
                 {{ student.preferred_field_2.name if student.preferred_field_2 else '' }},
                 {{ student.preferred_field_3.name if student.preferred_field_3 else '' }}
             </td>
-            <td>{{ student.preferred_practice_area }}</td>
-            <td>
+            <td class="text-right">{{ student.preferred_practice_area }}</td>
+            <td class="text-center">
                 <a href="{{ url_for('main.assign_instructor', student_id=student.id) }}" class="btn btn-success">Assign Instructor</a>
             </td>
         </tr>
