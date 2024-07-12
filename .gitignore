@@ -1,1 +1,15 @@
 uploads/*
+app/__pycache__
+app/__pycache__/*
+venv/Lib/*
+venv
+venv/*
+venv/
+__pycache__/
+# Virtual environment
+venv/
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
