@@ -1,14 +1,5 @@
 {% extends "base.html" %}
 
-{% block head %}
-<style>
-    {% for instructor_name, color in instructor_colors.items() %}
-    .color-{{ instructor_name|replace(" ", "-")|replace(".", "")|replace("/", "")|replace(",", "")|replace("(", "")|replace(")", "")|lower() }} {
-        background-color: {{ color }};
-    }
-    {% endfor %}
-</style>
-{% endblock %}
 
 {% block content %}
 <h1 class="mb-4">Assignments View</h1>
@@ -26,9 +17,9 @@
         <tr>
             <td>{{ student_name }}</td>
             {% for day in days_of_week %}
-            <td class="{{ days[day].color_class if days[day] else '' }}">
+            <td>
                 {% if days[day] %}
-                <div style="color: {{ instructor_colors[days[day].text.split(' - ')[0]] }};">
+                <div style="background-color: {{ instructor_colors[days[day].text.split(' - ')[0]] }};">
                     {{ days[day].text }}
                 </div>
                 {% endif %}
