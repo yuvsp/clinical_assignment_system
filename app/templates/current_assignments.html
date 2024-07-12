@@ -19,7 +19,11 @@
                     <td>{{ student_data.name }} #{{ i + 1 }} [ {{ student_data.preferred_fields | join(', ') }} ]</td>
                     {% if student_data.assignments[i] %}
                         {% set reason = student_data.assignments[i].instructor.area_of_expertise.name not in student_data.preferred_fields and 'table-warning' %}
-                        <td class="{{ reason }}">{{ student_data.assignments[i].instructor.name }} - {{ student_data.assignments[i].assigned_day }} - {{ student_data.assignments[i].instructor.area_of_expertise.name }}</td>
+                        <td class="{{ reason }}">
+                            {{ student_data.assignments[i].instructor.name }} - 
+                            {{ student_data.assignments[i].assigned_day }} - 
+                            {{ student_data.assignments[i].instructor.area_of_expertise.name }} [{{ student_data.assignments[i].instructor.practice_location }}]
+                        </td>
                         <td>
                             <form method="post" action="{{ url_for('main.remove_assignment', assignment_id=student_data.assignments[i].id) }}">
                                 <button type="submit" class="btn btn-danger">Cancel Assignment</button>

@@ -9,9 +9,21 @@ from datetime import datetime
 from collections import defaultdict
 import random
 
+# def generate_color():
+#     r = lambda: random.randint(0, 255)
+#     return f'#{r():02X}{r():02X}{r():02X}'
+
 def generate_color():
-    r = lambda: random.randint(0, 255)
-    return f'#{r():02X}{r():02X}{r():02X}'
+    return "#{:06x}".format(random.randint(0, 0xFFFFFF))
+
+# FIXED_COLORS = {
+#     'אדלר': '#CB2267',
+#     'תדהר': '#34a853',
+#     'המרכז הרפואי': '#4285f4',
+#     'בניין אור': '#fbbc05',
+#     'בית חולים': '#ea4335'
+# }
+
 
 bp = Blueprint('main', __name__)
 
@@ -74,8 +86,9 @@ def fields_view():
 def add_field():
     if request.method == 'POST':
         name = request.form['name']
-        field = Field(name=name)
-        db.session.add(field)
+        color = generate_color()
+        new_field = Field(name=name, color=color)
+        db.session.add(new_field)
         db.session.commit()
         return redirect(url_for('main.fields_view'))
     return render_template('add_field.html')
@@ -433,10 +446,12 @@ import base64
 @bp.route('/assignments_view')
 def assignments_view():
     students = Student.query.all()
-    days_of_week = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת']
+    days_of_week = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי']
     
     assignments_data = {student.name: {day: None for day in days_of_week} for student in students}
-    practice_location_colors = defaultdict(generate_color)
+    
+    fields = Field.query.all()
+    practice_location_colors = {field.name: field.color for field in fields}
     
     assignments = Assignment.query.all()
     
@@ -445,11 +460,59 @@ def assignments_view():
         day = assignment.assigned_day
         instructor_name = assignment.instructor.name
         practice_location = assignment.instructor.practice_location
-        color = practice_location_colors[practice_location]
-        encoded_location = base64.urlsafe_b64encode(practice_location.encode()).decode('utf-8').rstrip('=')
+        area_of_expertise = assignment.instructor.area_of_expertise.name
+        color = practice_location_colors.get(practice_location, '#000000')  # Default to black if not in fixed colors
         assignments_data[student_name][day] = {
-            'text': f"{instructor_name} - {practice_location}",
-            'color_class': f"color-{encoded_location}"
+            'text': f"{instructor_name} - {practice_location} - {area_of_expertise}",
+            'color_class': f"color-{practice_location.replace(' ', '-').replace('.', '').lower()}"
         }
     
     return render_template('assignments_view.html', assignments_data=assignments_data, days_of_week=days_of_week, practice_location_colors=practice_location_colors)
+
+@bp.route('/download_fields')
+def download_fields():
+    timestamp = datetime.now().strftime("%d_%m_%y_%H_%M")
+    filename = f"fields_{timestamp}.xlsx"
+
+    fields = Field.query.all()
+    data = [{'Name': field.name, 'Color': field.color} for field in fields]
+
+    df = pd.DataFrame(data)
+    output = io.BytesIO()
+    writer = pd.ExcelWriter(output, engine='xlsxwriter')
+    df.to_excel(writer, index=False, sheet_name='Fields')
+    writer.close()
+    output.seek(0)
+
+    return send_file(output, download_name=filename, as_attachment=True)
+
+@bp.route('/upload_fields', methods=['POST'])
+def upload_fields():
+    if 'file' not in request.files:
+        return redirect(url_for('main.fields_view'))
+    file = request.files['file']
+    if file.filename == '':
+        return redirect(url_for('main.fields_view'))
+    if file and allowed_file(file.filename):
+        filename = secure_filename(file.filename)
+        filepath = os.path.join(UPLOAD_FOLDER, filename)
+        file.save(filepath)
+        process_fields_file(filepath)
+        return redirect(url_for('main.fields_view'))
+    return redirect(url_for('main.fields_view'))
+
+def process_fields_file(filepath):
+    data = pd.read_excel(filepath)
+    
+    # Clear existing records
+    Field.query.delete()
+    db.session.commit()
+    
+    for index, row in data.iterrows():
+        field_name = row['Name']
+        field_color = row.get('Color', None)
+        if not field_color or not isinstance(field_color, str) or len(field_color) != 7 or not field_color.startswith('#'):
+            field_color = generate_color()
+        new_field = Field(name=field_name, color=field_color)
+        db.session.add(new_field)
+    db.session.commit()

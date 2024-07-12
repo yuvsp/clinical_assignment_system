@@ -2,17 +2,33 @@
 
 {% block content %}
 <h1 class="mb-4">Fields</h1>
-<a href="{{ url_for('main.add_field') }}" class="btn btn-primary mb-3">Add New Field</a>
+
+<!-- Buttons for download, upload, and add -->
+<div class="mb-4">
+    <a href="{{ url_for('main.download_fields') }}" class="btn btn-success">Download Fields</a>
+    
+    <!-- Upload form -->
+    <form action="{{ url_for('main.upload_fields') }}" method="post" enctype="multipart/form-data" class="d-inline-block">
+        <input type="file" name="file" id="file" class="d-inline-block">
+        <button type="submit" class="btn btn-primary">Import Fields Records</button>
+    </form>
+
+    <a href="{{ url_for('main.add_field') }}" class="btn btn-info">Add Field</a>
+</div>
+
+<!-- Table to display fields -->
 <table class="table table-bordered">
     <thead class="thead-light">
         <tr>
             <th>Name</th>
+            <th>Color</th>
         </tr>
     </thead>
     <tbody>
         {% for field in fields %}
         <tr>
             <td>{{ field.name }}</td>
+            <td style="background-color: {{ field.color }}">{{ field.color }}</td>
         </tr>
         {% endfor %}
     </tbody>

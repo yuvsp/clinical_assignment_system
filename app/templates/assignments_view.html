@@ -27,7 +27,11 @@
             <td>{{ student_name }}</td>
             {% for day in days_of_week %}
             <td class="{{ days[day].color_class if days[day] else '' }}">
-                {{ days[day].text if days[day] else '' }}
+                {% if days[day] %}
+                <div style="color: {{ practice_location_colors[days[day].text.split(' - ')[1]] }};">
+                    {{ days[day].text }}
+                </div>
+                {% endif %}
             </td>
             {% endfor %}
         </tr>
