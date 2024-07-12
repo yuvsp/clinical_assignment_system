@@ -3,44 +3,49 @@
 {% block content %}
 <h1 class="mb-4">Current Assignments</h1>
 <a href="{{ url_for('main.download_assignments') }}" class="btn btn-primary mb-3">Download Excel</a>
-<table class="table table-bordered">
+
+{% for student_id, student_data in student_assignments.items() %}
+<table class="table table-bordered mb-4 current-assignments-table" dir="rtl">
+    {% if loop.first %}
     <thead class="thead-light">
         <tr>
-            <th>Student Name</th>
-            <th>Assigned Instructor</th>
+            <th class="text-right">Student Name</th>
+            <th class="text-right">Assigned Instructor</th>
             <th>Action</th>
         </tr>
     </thead>
+    {% endif %}
     <tbody>
-        {% for student_id, student_data in student_assignments.items() %}
-            {% set row_class = loop.index0 % 2 == 0 and 'even-row' or 'odd-row' %}
-            {% for i in range(3) %}
-                <tr class="{{ row_class }}">
-                    <td>{{ student_data.name }} #{{ i + 1 }} [ {{ student_data.preferred_fields | join(', ') }} ]</td>
-                    {% if student_data.assignments[i] %}
-                        {% set reason = student_data.assignments[i].instructor.area_of_expertise.name not in student_data.preferred_fields and 'table-warning' %}
-                        <td class="{{ reason }}">
-                            {{ student_data.assignments[i].instructor.name }} - 
-                            {{ student_data.assignments[i].assigned_day }} - 
-                            {{ student_data.assignments[i].instructor.area_of_expertise.name }} [{{ student_data.assignments[i].instructor.practice_location }}]
-                        </td>
-                        <td>
-                            <form method="post" action="{{ url_for('main.remove_assignment', assignment_id=student_data.assignments[i].id) }}">
-                                <button type="submit" class="btn btn-danger">Cancel Assignment</button>
-                            </form>
-                        </td>
-                    {% else %}
-                        <td>Not assigned yet</td>
-                        <td>
-                            <div class="student" onmouseover="fetchInstructors('{{ student_id }}', this.querySelector('.instructors-tooltip'))" data-student-id="{{ student_id }}">
-                                <a href="{{ url_for('main.assign_instructor', student_id=student_id) }}" class="btn btn-primary">Assign Instructor</a>
-                                <div class="instructors-tooltip">Loading...</div>
-                            </div>
-                        </td>
-                    {% endif %} 
-                </tr>
-            {% endfor %}
+        {% for i in range(3) %}
+        <tr>
+            <td class="text-right">{{ student_data.name }} #{{ i + 1 }} - {{ student_data.preferred_fields | join(', ') }}</td>
+            {% if student_data.assignments[i] %}
+                {% set reason = student_data.assignments[i].instructor.area_of_expertise.name not in student_data.preferred_fields and 'table-warning' %}
+                <td class="text-right {{ reason }}">
+                    {{ student_data.assignments[i].instructor.name }} - 
+                    {{ student_data.assignments[i].assigned_day }} - 
+                    {{ student_data.assignments[i].instructor.area_of_expertise.name }} - {{ student_data.assignments[i].instructor.practice_location }}
+                </td>
+                <td class="text-center"> <!-- Add class for text-center alignment -->
+                    <form method="post" action="{{ url_for('main.remove_assignment', assignment_id=student_data.assignments[i].id) }}">
+                        <button type="submit" class="btn btn-danger">Cancel Assignment</button>
+                    </form>
+                </td>
+            {% else %}
+                <td class="text-right">Not assigned yet</td>
+                <td class="text-center"> <!-- Add class for text-center alignment -->
+                    <div class="student-container">
+                        <div class="student" onmouseover="fetchInstructors('{{ student_id }}', this.querySelector('.instructors-tooltip'))" data-student-id="{{ student_id }}">
+                            <a href="{{ url_for('main.assign_instructor', student_id=student_id) }}" class="btn btn-primary">Assign Instructor</a>
+                            <div class="instructors-tooltip">Loading...</div>
+                        </div>
+                    </div>
+                </td>
+            {% endif %} 
+        </tr>
         {% endfor %}
     </tbody>
 </table>
+{% endfor %}
+
 {% endblock %}

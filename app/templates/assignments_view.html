@@ -2,7 +2,8 @@
 
 {% block content %}
 <h1 class="mb-4">Assignments View</h1>
-<table class="table table-bordered">
+<a href="{{ url_for('main.download_assignments_view') }}" class="btn btn-primary mb-3">Download Excel</a>
+<table class="table table-bordered" dir="rtl">
     <thead class="thead-light">
         <tr>
             <th>Student Name</th>

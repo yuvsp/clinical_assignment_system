@@ -515,9 +515,9 @@ def assignments_view():
     for student in students:
         assignments_count = student_assignments_count[student.name]
         if assignments_count >= 3:
-            student_assignments_status[student.name] = f"✅ {student.name}"
+            student_assignments_status[student.name] = f"{student.name} ✅"
         else:
-            student_assignments_status[student.name] = f"❌ {student.name}"
+            student_assignments_status[student.name] = f"{student.name} ❌"
     
     return render_template('assignments_view.html', assignments_data=assignments_data, days_of_week=days_of_week, instructor_colors=instructor_colors, student_assignments_status=student_assignments_status, students=students)
 
@@ -568,3 +568,76 @@ def process_fields_file(filepath):
         new_field = Field(name=field_name, color=field_color)
         db.session.add(new_field)
     db.session.commit()
+
+import pandas as pd
+import io
+from flask import send_file
+from datetime import datetime
+
+@bp.route('/download_assignments_view')
+def download_assignments_view():
+    students = Student.query.all()
+    days_of_week = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי']
+
+    assignments_data = {student.name: {day: None for day in days_of_week} for student in students}
+    instructor_colors = {instructor.name: instructor.color for instructor in ClinicalInstructor.query.all()}
+
+    assignments = Assignment.query.all()
+
+    for assignment in assignments:
+        student_name = assignment.student.name
+        day = assignment.assigned_day
+        instructor_name = assignment.instructor.name
+        practice_location = assignment.instructor.practice_location
+        area_of_expertise = assignment.instructor.area_of_expertise.name
+        color_class = f"color-{instructor_name.replace(' ', '-').replace('.', '').lower()}"
+        assignments_data[student_name][day] = {
+            'text': f"{instructor_name} - {practice_location} - {area_of_expertise}",
+            'color_class': color_class,
+            'color': instructor_colors[instructor_name]
+        }
+
+    # Create a DataFrame
+    data = []
+    for student_name, days in assignments_data.items():
+        row = [student_name]
+        for day in days_of_week:
+            if days[day]:
+                row.append({
+                    'text': days[day]['text'],
+                    'color': days[day]['color']
+                })
+            else:
+                row.append(None)
+        data.append(row)
+
+    df = pd.DataFrame(data, columns=['Student Name'] + days_of_week)
+
+    # Create an Excel file with colors
+    output = io.BytesIO()
+    writer = pd.ExcelWriter(output, engine='xlsxwriter')
+    df.to_excel(writer, index=False, sheet_name='Assignments View')
+
+    workbook = writer.book
+    worksheet = writer.sheets['Assignments View']
+
+    # Set column widths and RTL direction
+    worksheet.set_column('A:F', 22)  
+    worksheet.right_to_left()
+
+    # Apply colors to cells
+    for row_num, row in enumerate(data, start=1):
+        for col_num, cell in enumerate(row[1:], start=1):
+            if cell:
+                cell_format = workbook.add_format({'bg_color': cell['color']})
+                worksheet.write(row_num, col_num, cell['text'], cell_format)
+            else:
+                worksheet.write(row_num, col_num, '')
+
+    writer.close()
+    output.seek(0)
+
+    timestamp = datetime.now().strftime("%d_%m_%y_%H_%M")
+    filename = f"assignments_view_{timestamp}.xlsx"
+
+    return send_file(output, download_name=filename, as_attachment=True)
