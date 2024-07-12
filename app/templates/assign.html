@@ -7,7 +7,7 @@
         <thead class="thead-light">
             <tr>
                 <th class="text-right">Instructor Name</th>
-                <th class="text-right">Area of Expertise - Instructor Name</th>
+                <th class="text-right">Area of Expertise</th>
                 <th class="text-right">Available Day</th>
                 <th class="text-right">Remark</th>
                 <th>Action</th>
@@ -18,7 +18,7 @@
             {% for instructor, day, assignment, student_already_assigned_to_instructor in relevant_instructor_days %}
             <tr class="table-success">
                 <td class="text-right">{{ instructor.name }}</td>
-                <td class="text-right">{{ instructor.area_of_expertise.name }} - {{ instructor.name }} [{{ instructor.practice_location }}]</td>
+                <td class="text-right">{{ instructor.area_of_expertise.name }} [{{ instructor.practice_location }}]</td>
                 <td class="text-right">{{ day }}</td>
                 <td class="text-right">
                     {% if day in student_assigned_days %}
