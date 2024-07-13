@@ -1,28 +1,28 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h1 class="mb-4">Instructors</h1>
-<a href="{{ url_for('main.add_instructor') }}" class="btn btn-primary mb-4">Add Instructor</a>
-<a href="{{ url_for('main.download_instructors') }}" class="btn btn-success mb-4">Download Excel</a>
+<h1 class="mb-4 text-right">קלינאיות</h1>
+<a href="{{ url_for('main.add_instructor') }}" class="btn btn-primary mb-4">הוסף קלינאית</a>
+<a href="{{ url_for('main.download_instructors') }}" class="btn btn-success mb-4">הורד Excel</a>
 <form action="{{ url_for('main.upload_instructors') }}" method="post" enctype="multipart/form-data" class="mb-4">
     <input type="file" name="file" class="form-control-file mb-2" required>
-    <button type="submit" class="btn btn-warning">Import Instructor Records</button>
+    <button type="submit" class="btn btn-warning">יבא רשומות קלינאיות</button>
 </form>
 <table class="table table-bordered" dir="rtl">
     <thead class="thead-light">
         <tr>
-            <th class="text-right">Name</th>
-            <th class="text-right">Practice Location</th>
-            <th class="text-right">Area of Expertise</th>
-            <th class="text-right">City</th>
-            <th class="text-right">Address</th>
-            <th class="text-right">Phone</th>
-            <th class="text-right">Email</th>
-            <th class="text-right">Relevant Semesters</th>
-            <th class="text-right">Years of Experience</th>
-            <th class="text-right">Available Days to Assign</th>
-            <th class="text-right">Max Students per Day</th>
-            <th class="text-right">Color</th>
+            <th class="text-right">שם</th>
+            <th class="text-right">מקום תרגול</th>
+            <th class="text-right">תחום התמחות</th>
+            <th class="text-right">עיר</th>
+            <th class="text-right">כתובת</th>
+            <th class="text-right">טלפון</th>
+            <th class="text-right">אימייל</th>
+            <th class="text-right">סמסטרים רלוונטיים</th>
+            <th class="text-right">שנות ניסיון</th>
+            <th class="text-right">ימי זמינות להקצאה</th>
+            <th class="text-right">מספר מקסימלי של סטודנטיות ליום</th>
+            <th class="text-right">צבע</th>
         </tr>
     </thead>
     <tbody>

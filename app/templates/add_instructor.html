@@ -1,50 +1,50 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h1 class="mb-4">Add Instructor</h1>
-<form method="post">
-    <div class="form-group">
-        <label for="name">Name:</label>
+<h1 class="mb-4 text-right">הוסף קלינאית</h1>
+<form method="post" dir="rtl">
+    <div class="form-group text-right">
+        <label for="name">שם:</label>
         <input type="text" class="form-control" id="name" name="name" required>
     </div>
-    <div class="form-group">
-        <label for="practice_location">Practice Location:</label>
+    <div class="form-group text-right">
+        <label for="practice_location">מיקום תרגול:</label>
         <input type="text" class="form-control" id="practice_location" name="practice_location" required>
     </div>
-    <div class="form-group">
-        <label for="area_of_expertise">Area of Expertise:</label>
+    <div class="form-group text-right">
+        <label for="area_of_expertise">תחום מומחיות:</label>
         <select class="form-control" id="area_of_expertise" name="area_of_expertise" required>
             {% for field in fields %}
             <option value="{{ field.id }}">{{ field.name }}</option>
             {% endfor %}
         </select>
     </div>
-    <div class="form-group">
-        <label for="city">City:</label>
+    <div class="form-group text-right">
+        <label for="city">עיר:</label>
         <input type="text" class="form-control" id="city" name="city" required>
     </div>
-    <div class="form-group">
-        <label for="address">Address:</label>
+    <div class="form-group text-right">
+        <label for="address">כתובת:</label>
         <input type="text" class="form-control" id="address" name="address" required>
     </div>
-    <div class="form-group">
-        <label for="phone">Phone:</label>
+    <div class="form-group text-right">
+        <label for="phone">טלפון:</label>
         <input type="text" class="form-control" id="phone" name="phone" required>
     </div>
-    <div class="form-group">
-        <label for="email">Email:</label>
+    <div class="form-group text-right">
+        <label for="email">אימייל:</label>
         <input type="email" class="form-control" id="email" name="email" required>
     </div>
-    <div class="form-group">
-        <label for="relevant_semesters">Relevant Semesters:</label>
+    <div class="form-group text-right">
+        <label for="relevant_semesters">סמסטרים רלוונטיים:</label>
         <input type="text" class="form-control" id="relevant_semesters" name="relevant_semesters" required>
     </div>
-    <div class="form-group">
-        <label for="years_of_experience">Years of Experience:</label>
+    <div class="form-group text-right">
+        <label for="years_of_experience">שנות ניסיון:</label>
         <input type="number" class="form-control" id="years_of_experience" name="years_of_experience" required>
     </div>
-    <div class="form-group">
-        <label for="available_days_to_assign">Available Days to Assign:</label>
+    <div class="form-group text-right">
+        <label for="available_days_to_assign">ימים פנויים להקצאה:</label>
         <div class="form-check">
             <input class="form-check-input" type="checkbox" value="ראשון" id="sunday" name="available_days_to_assign">
             <label class="form-check-label" for="sunday">ראשון</label>
@@ -66,14 +66,14 @@
             <label class="form-check-label" for="thursday">חמישי</label>
         </div>
     </div>
-    <div class="form-group">
-        <label for="max_students_per_day">Max Students per Day:</label>
+    <div class="form-group text-right">
+        <label for="max_students_per_day">מקסימום סטודנטיות ליום:</label>
         <input type="number" class="form-control" id="max_students_per_day" name="max_students_per_day" required>
     </div>
-    <div class="form-group">
-        <label for="color">Color:</label>
-        <input type="color" class="form-control" id="color" name="color" required value="#FFFFFF"> <!-- Add this line -->
+    <div class="form-group text-right">
+        <label for="color">צבע:</label>
+        <input type="color" class="form-control" id="color" name="color" required value="#FFFFFF">
     </div>
-    <button type="submit" class="btn btn-primary">Add Instructor</button>
+    <button type="submit" class="btn btn-primary">הוסף קלינאית</button>
 </form>
 {% endblock %}

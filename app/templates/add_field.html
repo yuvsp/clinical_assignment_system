@@ -1,12 +1,12 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h1 class="mb-4">Add Field</h1>
-<form method="post">
+<h1 class="mb-4 text-right">הוסף תחום</h1>
+<form method="post" dir="rtl">
     <div class="form-group">
-        <label for="name">Field Name:</label>
+        <label for="name" class="float-right">שם התחום:</label>
         <input type="text" class="form-control" id="name" name="name" required>
     </div>
-    <button type="submit" class="btn btn-primary">Add Field</button>
+    <button type="submit" class="btn btn-primary">הוסף תחום</button>
 </form>
 {% endblock %}
