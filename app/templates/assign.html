@@ -1,7 +1,9 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h1 class="mb-4" style="text-align: right;">שיבוץ קלינאית ל{{ student.name }}</h1>
+<h1 class="mb-4" style="text-align: right;">
+    שיבוץ קלינאית ל<span style="background-color: #74d4cc; padding: 2px 4px; border-radius: 4px;">{{ student.name }}</span>
+</h1>
 <form method="post" dir="rtl">
     <table class="table table-bordered">
         <thead class="thead-light">
