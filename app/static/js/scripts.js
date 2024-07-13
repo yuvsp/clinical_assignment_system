@@ -13,10 +13,10 @@ function fetchInstructors(studentId, tooltipElement) {
             data.irrelevant_instructors.forEach(instructor => {
                 let p = document.createElement('p');
                 p.style.textDecoration = 'line-through';
-                if (instructor.reason === "Instructor is booked for the selected day") {
+                if (instructor.reason === "הקלינאית תפוסה ביום זה") {
                     p.classList.add('red-background');
                 }
-                if (instructor.reason === "Field is not relevant") {
+                if (instructor.reason === "תחום לא מועדף של הסטודנטית") {
                     p.classList.add('yellow-background');
                 }
                 p.textContent = `${instructor.name} - ${instructor.area_of_expertise} - ${instructor.day} (${instructor.reason})`;

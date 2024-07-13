@@ -1,16 +1,16 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h1 class="mb-4">Assign Instructor to {{ student.name }}</h1>
-<form method="post">
-    <table class="table table-bordered" dir="rtl">
+<h1 class="mb-4" style="text-align: right;">שיבוץ קלינאית ל{{ student.name }}</h1>
+<form method="post" dir="rtl">
+    <table class="table table-bordered">
         <thead class="thead-light">
             <tr>
-                <th class="text-right">Instructor Name</th>
-                <th class="text-right">Area of Expertise</th>
-                <th class="text-right">Available Day</th>
-                <th class="text-right">Remark</th>
-                <th>Action</th>
+                <th class="text-right">שם קלינאית</th>
+                <th class="text-right">תחום התמחות</th>
+                <th class="text-right">יום זמין</th>
+                <th class="text-right">הערה</th>
+                <th>פעולה</th>
             </tr>
         </thead>
         <tbody>
@@ -22,27 +22,27 @@
                 <td class="text-right">{{ day }}</td>
                 <td class="text-right">
                     {% if day in student_assigned_days %}
-                    Student already has assignment at this day
+                    לסטודנטית כבר יש שיבוץ ביום זה
                     {% endif %}
                 </td>
                 <td>
                     {% if assignment and student_already_assigned_to_instructor %}
-                    <button type="submit" name="cancel_assignment_id" value="{{ assignment.id }}" class="btn btn-danger">Cancel Assignment</button>
+                    <button type="submit" name="cancel_assignment_id" value="{{ assignment.id }}" class="btn btn-danger">ביטול שיבוץ</button>
                     {% elif assignment_count < 3 %}
-                    <button type="submit" name="instructor_id" value="{{ instructor.id }}" onclick="document.getElementById('assigned_day').value='{{ day }}'" class="btn btn-primary">Assign</button>
+                    <button type="submit" name="instructor_id" value="{{ instructor.id }}" onclick="document.getElementById('assigned_day').value='{{ day }}'" class="btn btn-primary">שיבוץ</button>
                     {% endif %}
                 </td>
             </tr>
             {% endfor %}
             {% for instructor, day, reason in irrelevant_instructors %}
-            <tr class="{% if reason == 'Field is not relevant' %}table-warning{% else %}table-danger{% endif %}">
+            <tr class="{% if reason == 'תחום לא מועדף של הסטודנטית' %}table-warning{% else %}table-danger{% endif %}">
                 <td class="text-right" style="text-decoration: line-through;">{{ instructor.name }}</td>
                 <td class="text-right" style="text-decoration: line-through;">{{ instructor.area_of_expertise.name }} ({{ instructor.name }}) [{{ instructor.practice_location }}]</td>
                 <td class="text-right" style="text-decoration: line-through;">{{ day }}</td>
                 <td class="text-right">{{ reason }}</td>
                 <td>
-                    {% if reason == 'Field is not relevant' and assignment_count < 3 %}
-                    <button type="submit" name="instructor_id" value="{{ instructor.id }}" onclick="document.getElementById('assigned_day').value='{{ day }}'" class="btn btn-primary">Assign</button>
+                    {% if reason == 'תחום לא מועדף של הסטודנטית' and assignment_count < 3 %}
+                    <button type="submit" name="instructor_id" value="{{ instructor.id }}" onclick="document.getElementById('assigned_day').value='{{ day }}'" class="btn btn-primary">שיבוץ</button>
                     {% endif %}
                 </td>
             </tr>

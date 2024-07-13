@@ -198,14 +198,14 @@ def assign_instructor(student_id):
                     assignment = next((assignment for assignment in student_assignments if assignment.instructor_id == instructor.id and assignment.assigned_day == day), None)
                     relevant_instructors.append((instructor, day, assignment, True))
                 else:
-                    irrelevant_instructors.append((instructor, day, "Student already has assignment at this day"))
+                    irrelevant_instructors.append((instructor, day, "הסטודנטית כבר משובצת ביום זה"))
             elif assigned_count < instructor.max_students_per_day:
                 if instructor.area_of_expertise.name in preferred_fields:
                     relevant_instructors.append((instructor, day, None, False))
                 else:
-                    irrelevant_instructors.append((instructor, day, "Field is not relevant"))
+                    irrelevant_instructors.append((instructor, day, "תחום לא מועדף של הסטודנטית"))
             else:
-                irrelevant_instructors.append((instructor, day, "Instructor is booked for the selected day"))
+                irrelevant_instructors.append((instructor, day, "הקלינאית תפוסה ביום זה"))
 
     # Sort relevant instructors by preferred fields order
     relevant_instructors.sort(key=lambda x: preferred_fields.index(x[0].area_of_expertise.name) if x[0].area_of_expertise.name in preferred_fields else len(preferred_fields))
@@ -250,21 +250,21 @@ def relevant_instructors(student_id):
                             'name': instructor.name,
                             'area_of_expertise': instructor.area_of_expertise.name,
                             'day': day,
-                            'reason': "Student already has an instructor assigned for this day"
+                            'reason': "לסטודנטית כבר יש שיבוץ באותו יום"
                         })
                 else:
                     irrelevant_instructors.append({
                         'name': instructor.name,
                         'area_of_expertise': instructor.area_of_expertise.name,
                         'day': day,
-                        'reason': "Field is not relevant"
+                        'reason': "תחום לא מועדף של הסטודנטית"
                     })
             else:
                 irrelevant_instructors.append({
                     'name': instructor.name,
                     'area_of_expertise': instructor.area_of_expertise.name,
                     'day': day,
-                    'reason': "Instructor is booked for the selected day"
+                    'reason': "הקלינאית תפוסה ביום זה"
                 })
 
     return jsonify({'relevant_instructors': relevant_instructors, 'irrelevant_instructors': irrelevant_instructors})
@@ -515,9 +515,9 @@ def assignments_view():
     for student in students:
         assignments_count = student_assignments_count[student.name]
         if assignments_count >= 3:
-            student_assignments_status[student.name] = f"{student.name} ✅"
+            student_assignments_status[student.name] = f"✅ {student.name}"
         else:
-            student_assignments_status[student.name] = f"{student.name} ❌"
+            student_assignments_status[student.name] = f"❌ {student.name}"
     
     return render_template('assignments_view.html', assignments_data=assignments_data, days_of_week=days_of_week, instructor_colors=instructor_colors, student_assignments_status=student_assignments_status, students=students)
 

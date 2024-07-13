@@ -9,6 +9,7 @@
     --white: #ffffff;
     --light-green: lightgreen;
     --light-coral: lightcoral;
+    --heading-color: #2c3e50;
 }
 
 /* Base Styles */
@@ -19,6 +20,7 @@ body {
     margin: 0;
     padding: 0;
     line-height: 1.6;
+    direction: rtl;
 }
 
 /* Navigation Styles */
@@ -40,8 +42,16 @@ body {
 }
 
 h1, h2, h3 {
-    color: var(--primary-color);
-    font-weight: 500;
+    color: var(--heading-color);
+    font-weight: 700;
+    font-family: 'Roboto', sans-serif;
+    margin-bottom: 20px;
+}
+
+h1 {
+    font-size: 2.5rem;
+    border-bottom: 2px solid var(--primary-color);
+    padding-bottom: 10px;
 }
 
 /* Table Styles */
@@ -53,7 +63,7 @@ h1, h2, h3 {
 
 .table th, .table td {
     padding: 12px;
-    text-align: left;
+    text-align: right;
     background-color: var(--white);
     border-bottom: 1px solid #dddddd;
 }
@@ -108,27 +118,12 @@ button:hover, .btn:hover {
 }
 
 /* Form Styles */
-form button.btn {
-    display: block;
-  /*   width: 100%;*/
-    padding: 0.5rem;
-    margin: 0;
-    border: none;
-    background-color: #dc3545;
-    color: white;
-    text-align: center;
-    border-radius: 0.25rem;
-    cursor: pointer;
-    transition: background-color 0.3s;
-}
-
-form button.btn:hover {
-    background-color: #c82333;
-}
-
 form {
-    margin: 0;
-    padding: 0;
+    background-color: var(--white);
+    padding: 20px;
+    border: 1px solid #dddddd;
+    margin-bottom: 20px;
+    border-radius: 10px;
 }
 
 label {
@@ -179,72 +174,7 @@ input[type="text"], input[type="number"], select, input[type="email"], input[typ
     background-color: var(--light-coral);
 }
 
-.even-student {
-    background-color: #f9f9f9;
-}
-
-.odd-student {
-    background-color: #b8b8b8;
-}
-.even-student:nth-child(3n+1), .even-student:nth-child(3n+2), .even-student:nth-child(3n+3) {
-    background-color: #c126b6;
-}
-
-.odd-student:nth-child(3n+1), .odd-student:nth-child(3n+2), .odd-student:nth-child(3n+3) {
-    background-color: #ea3333;
-}
-
-
-.student-group {
-    border-bottom: 2px solid #1ed637;
-}
-
-.student-group:last-child {
-    border-bottom: none;
-}
-.table-bordered {
-    margin-bottom: 20px;
-}
-
-
-
-/* 
-.table th, .table td {
-    width: 33.33%;
-}
-
-.table tbody tr:first-child th, .table tbody tr:first-child td {
-    border-top: none;
-} */
-
-.current-assignments-table {
-    border: 2px solid #333; /* Darker outer border color for distinction */
-}
-
-.current-assignments-table th, .current-assignments-table td {
-    border-width: 1px; /* Inner border width */
-    border-color: #dee2e6; /* Default Bootstrap color */
-}
-
-.current-assignments-table th, .current-assignments-table td {
-    width: 33.33%;
-}
-
-
-.text-center {
-    text-align: center;
-    vertical-align: middle;
-}
-
-.text-center form {
-    display: inline-block;
-}
-
-.text-center .student {
-    display: inline-block;
-}
-
-
+/* Current Assignments Table Styles */
 .current-assignments-table {
     border: 2px solid #333; /* Darker outer border color for distinction */
 }
@@ -281,4 +211,23 @@ input[type="text"], input[type="number"], select, input[type="email"], input[typ
 
 .student {
     display: inline-block;
+}
+form {
+    margin: 0;
+    padding: 0;
+}
+
+
+.form-check {
+    display: flex;
+    align-items: center;
+}
+
+.form-check-label {
+    margin-left: 1rem;
+    margin-right: 1.5rem;
+}
+
+.text-right {
+    text-align: right;
 }

@@ -1,31 +1,31 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h1 class="mb-4">Fields</h1>
+<h1 class="mb-4 text-right">תחומים</h1>
 
 <!-- Buttons for download, upload, and add -->
-<a href="{{ url_for('main.add_field') }}" class="btn btn-primary mb-3">Add New Field</a>
-<a href="{{ url_for('main.download_fields') }}" class="btn btn-primary mb-3">Download Excel</a>
+<a href="{{ url_for('main.add_field') }}" class="btn btn-primary mb-3">הוסף תחום חדש</a>
+<a href="{{ url_for('main.download_fields') }}" class="btn btn-primary mb-3">הורד אקסל</a>
 <form action="{{ url_for('main.upload_fields') }}" method="post" enctype="multipart/form-data">
     <div class="form-group">
         <input type="file" class="form-control-file" name="file" required>
     </div>
-    <button type="submit" class="btn btn-primary">Import Fields Records</button>
+    <button type="submit" class="btn btn-primary">ייבא רשומות תחומים</button>
 </form>
 
 <!-- Table to display fields -->
-<table class="table table-bordered mt-4">
+<table class="table table-bordered mt-4" dir="rtl">
     <thead class="thead-light">
         <tr>
-            <th>Name</th>
-            <th style="width: 50px;">Color</th>
+            <th class="text-right">שם</th>
+            <th class="text-right" style="width: 50px;">צבע</th>
         </tr>
     </thead>
     <tbody>
         {% for field in fields %}
         <tr>
-            <td>{{ field.name }}</td>
-            <td style="background-color: {{ field.color }}">{{ field.color }}</td>
+            <td class="text-right">{{ field.name }}</td>
+            <td class="text-right" style="background-color: {{ field.color }}">{{ field.color }}</td>
         </tr>
         {% endfor %}
     </tbody>

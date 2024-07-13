@@ -3,37 +3,36 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Clinical Assignment System</title>
+    <title>מערכת הקצאות קליניות</title>
     <!-- Bootstrap CSS -->
     <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
     <!-- Custom CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
-    {% block head %}{% endblock %}
 </head>
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-        <a class="navbar-brand" href="#">Clinical Assignment System</a>
+        <a class="navbar-brand" href="#">מערכת הקצאות קליניות</a>
         <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
         </button>
         <div class="collapse navbar-collapse" id="navbarNav">
             <ul class="navbar-nav ml-auto">
                 <li class="nav-item">
-                    <a class="nav-link" href="{{ url_for('main.fields_view') }}">Fields</a>
+                    <a class="nav-link" href="{{ url_for('main.current_assignments') }}">שיבוצים נוכחיים</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="{{ url_for('main.students_view') }}">Students</a>
+                    <a class="nav-link" href="{{ url_for('main.instructors_view') }}">קלינאיות</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="{{ url_for('main.instructors_view') }}">Instructors</a>
+                    <a class="nav-link" href="{{ url_for('main.students_view') }}">סטודנטיות</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="{{ url_for('main.current_assignments') }}">Current Assignments</a>
+                    <a class="nav-link" href="{{ url_for('main.fields_view') }}">תחומים</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="{{ url_for('main.assignments_view') }}">Assignments View</a>
+                    <a class="nav-link" href="{{ url_for('main.assignments_view') }}">תצוגת שיבוצים</a>
                 </li>
             </ul>
         </div>
