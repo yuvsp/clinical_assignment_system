@@ -1,3 +1,4 @@
+instance/your_database.db
 uploads/*
 app/__pycache__
 app/__pycache__/*
@@ -15,3 +16,7 @@ __pycache__/
 *.py[cod]
 *$py.class
 app/__pycache__/routes.cpython-312.pyc
+venv.zip
+instance/your_database.db
+instance/your_database.db
+*.db

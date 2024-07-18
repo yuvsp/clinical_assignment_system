@@ -641,3 +641,71 @@ def download_assignments_view():
     filename = f"assignments_view_{timestamp}.xlsx"
 
     return send_file(output, download_name=filename, as_attachment=True)
+
+@bp.route('/export_backup_excel')
+def export_backup_excel():
+    timestamp = datetime.now().strftime("%d_%m_%y_%H_%M")
+    filename = f"assignments_backup_{timestamp}.xlsx"
+
+    assignments = Assignment.query.all()
+    data = [{
+        'Student Name': assignment.student.name,
+        'Instructor Name': assignment.instructor.name,
+        'Assigned Day': assignment.assigned_day,
+        'Instructor Field': assignment.instructor.area_of_expertise.name,
+        'Practice Location': assignment.instructor.practice_location
+    } for assignment in assignments]
+
+    df = pd.DataFrame(data)
+    output = io.BytesIO()
+    writer = pd.ExcelWriter(output, engine='xlsxwriter')
+    df.to_excel(writer, index=False, sheet_name='Assignments')
+    writer.close()
+    output.seek(0)
+
+    return send_file(output, download_name=filename, as_attachment=True)
+
+@bp.route('/import_backup_excel', methods=['POST'])
+def import_backup_excel():
+    if 'file' not in request.files:
+        flash('No file part')
+        return redirect(url_for('main.current_assignments'))
+    
+    file = request.files['file']
+    if file.filename == '':
+        flash('No selected file')
+        return redirect(url_for('main.current_assignments'))
+    
+    if file and allowed_file(file.filename):
+        filename = secure_filename(file.filename)
+        filepath = os.path.join('uploads', filename)
+        file.save(filepath)
+        process_backup_file(filepath)
+        return redirect(url_for('main.current_assignments'))
+
+    flash('Invalid file format')
+    return redirect(url_for('main.current_assignments'))
+
+def process_backup_file(filepath):
+    df = pd.read_excel(filepath)
+
+    # Clear existing assignments
+    Assignment.query.delete()
+    db.session.commit()
+
+    # Add new assignments from the Excel file
+    for _, row in df.iterrows():
+        student = Student.query.filter_by(name=row['Student Name']).first()
+        instructor = ClinicalInstructor.query.filter_by(name=row['Instructor Name']).first()
+        if student and instructor:
+            new_assignment = Assignment(
+                student_id=student.id,
+                instructor_id=instructor.id,
+                assigned_day=row['Assigned Day']
+            )
+            db.session.add(new_assignment)
+    db.session.commit()
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in {'xlsx'}
+

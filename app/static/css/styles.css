@@ -82,11 +82,11 @@ h1 {
     background-color: var(--white) !important;
 }
 
-/* Button Styles */
+/* /* Button Styles */
 button, .btn {
     background-color: var(--primary-color) !important;
     color: var(--white) !important;
-    border-radius: 20px;
+    border-radius: 4px; /* Changed from 20px to 4px for more rectangular buttons */
     padding: 10px 20px;
     font-weight: 500;
     transition: background-color 0.3s ease;
@@ -116,6 +116,7 @@ button:hover, .btn:hover {
     padding: 10px 20px;
     border: none;
 }
+
 
 /* Form Styles */
 form {

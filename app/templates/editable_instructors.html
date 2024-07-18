@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1 class="mb-4">Editable Instructors</h1>
+<form id="editableForm" method="post" action="{{ url_for('main.update_instructors') }}">
+    <table class="table table-bordered" id="editableTable">
+        <thead class="thead-light">
+            <tr>
+                <th>שם</th>
+                <th>מיקום קליני</th>
+                <th>תחום מומחיות</th>
+                <th>עיר</th>
+                <th>כתובת</th>
+                <th>טלפון</th>
+                <th>אימייל</th>
+                <th>סמסטרים רלוונטיים</th>
+                <th>שנות ניסיון</th>
+                <th>ימים פנויים להקצאה</th>
+                <th>מספר סטודנטים מקסימלי ליום</th>
+                <th>צבע</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for instructor in instructors %}
+            <tr>
+                <td contenteditable="true" data-id="{{ instructor.id }}" data-field="name">{{ instructor.name }}</td>
+                <td contenteditable="true" data-id="{{ instructor.id }}" data-field="practice_location">{{ instructor.practice_location }}</td>
+                <td contenteditable="true" data-id="{{ instructor.id }}" data-field="area_of_expertise">{{ instructor.area_of_expertise.name }}</td>
+                <td contenteditable="true" data-id="{{ instructor.id }}" data-field="city">{{ instructor.city }}</td>
+                <td contenteditable="true" data-id="{{ instructor.id }}" data-field="address">{{ instructor.address }}</td>
+                <td contenteditable="true" data-id="{{ instructor.id }}" data-field="phone">{{ instructor.phone }}</td>
+                <td contenteditable="true" data-id="{{ instructor.id }}" data-field="email">{{ instructor.email }}</td>
+                <td contenteditable="true" data-id="{{ instructor.id }}" data-field="relevant_semesters">{{ instructor.relevant_semesters }}</td>
+                <td contenteditable="true" data-id="{{ instructor.id }}" data-field="years_of_experience">{{ instructor.years_of_experience }}</td>
+                <td contenteditable="true" data-id="{{ instructor.id }}" data-field="available_days_to_assign">{{ instructor.available_days_to_assign }}</td>
+                <td contenteditable="true" data-id="{{ instructor.id }}" data-field="max_students_per_day">{{ instructor.max_students_per_day }}</td>
+                <td contenteditable="true" data-id="{{ instructor.id }}" data-field="color">{{ instructor.color }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <button type="submit" class="btn btn-primary">Save Changes</button>
+</form>
+{% endblock %}

@@ -2,7 +2,11 @@
 
 {% block content %}
 <h1 class="mb-4 text-right">שיבוצים נוכחיים</h1>
-<a href="{{ url_for('main.download_assignments') }}" class="btn btn-primary mb-3">הורד קובץ אקסל</a>
+<a href="{{ url_for('main.export_backup_excel') }}" class="btn btn-secondary mb-3">ייצא גיבוי אקסל</a>
+<form action="{{ url_for('main.import_backup_excel') }}" method="post" enctype="multipart/form-data" class="mb-3">
+    <input type="file" name="file" class="form-control-file mb-2" required>
+    <button type="submit" class="btn btn-warning">ייבא גיבוי אקסל</button>
+</form>
 
 {% for student_id, student_data in student_assignments.items() %}
 <table class="table table-bordered mb-4 current-assignments-table" dir="rtl">
@@ -26,14 +30,14 @@
                     {{ student_data.assignments[i].assigned_day }} - 
                     {{ student_data.assignments[i].instructor.area_of_expertise.name }} - {{ student_data.assignments[i].instructor.practice_location }}
                 </td>
-                <td class="text-center"> <!-- Add class for text-center alignment -->
+                <td class="text-center">
                     <form method="post" action="{{ url_for('main.remove_assignment', assignment_id=student_data.assignments[i].id) }}">
                         <button type="submit" class="btn btn-danger">ביטול שיבוץ</button>
                     </form>
                 </td>
             {% else %}
                 <td class="text-right">לא מוקצה עדיין</td>
-                <td class="text-center"> <!-- Add class for text-center alignment -->
+                <td class="text-center">
                     <div class="student-container">
                         <div class="student" onmouseover="fetchInstructors('{{ student_id }}', this.querySelector('.instructors-tooltip'))" data-student-id="{{ student_id }}">
                             <a href="{{ url_for('main.assign_instructor', student_id=student_id) }}" class="btn btn-primary">שיבוץ</a>
@@ -41,7 +45,7 @@
                         </div>
                     </div>
                 </td>
-            {% endif %} 
+            {% endif %}
         </tr>
         {% endfor %}
     </tbody>
