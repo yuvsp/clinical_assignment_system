@@ -135,14 +135,26 @@ form {
 
 label {
     font-weight: bold;
+    display: block; /* Ensure labels take up the full width */
+    margin-bottom: 5px; /* Add space between label and input */
 }
 
 input[type="text"], input[type="number"], select, input[type="email"], input[type="file"], .form-control {
-    width: 100%;
-    padding: 10px;
-    margin-bottom: 10px;
+    width: 100%; /* Make sure the input takes up full width */
+    padding: 10px; /* Add padding for better spacing */
+    margin-bottom: 10px; /* Add space between fields */
     border: 1px solid #dddddd;
-    border-radius: 4px;
+    border-radius: 8px;
+    box-sizing: border-box; /* Include padding and border in the element's total width and height */
+}
+
+.form-control::placeholder {
+    color: #999999; /* Make placeholder text more subtle */
+}
+
+/* Adjust form buttons */
+button, .btn {
+    margin-top: 10px; /* Add space above buttons */
 }
 
 /* Tooltip Styles */
@@ -232,8 +244,4 @@ form {
 .form-check-label {
     margin-left: 1rem;
     margin-right: 1.5rem;
-}
-
-.text-right {
-    text-align: right;
 }

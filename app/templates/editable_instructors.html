@@ -36,7 +36,12 @@
             <td contenteditable="true" data-field="address">{{ instructor.address }}</td>
             <td contenteditable="true" data-field="phone">{{ instructor.phone }}</td>
             <td contenteditable="true" data-field="email">{{ instructor.email }}</td>
-            <td contenteditable="true" data-field="relevant_semesters">{{ instructor.relevant_semesters }}</td>
+            <td>
+                <select class="form-control" data-field="relevant_semesters">
+                    <option value="א" {% if instructor.relevant_semesters == 'א' %}selected{% endif %}>א</option>
+                    <option value="ב" {% if instructor.relevant_semesters == 'ב' %}selected{% endif %}>ב</option>
+                </select>
+            </td>
             <td contenteditable="true" data-field="years_of_experience">{{ instructor.years_of_experience }}</td>
             <td contenteditable="true" data-field="available_days_to_assign">{{ instructor.available_days_to_assign }}</td>
             <td contenteditable="true" data-field="max_students_per_day">{{ instructor.max_students_per_day }}</td>
@@ -65,7 +70,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 address: row.querySelector('[data-field="address"]').textContent.trim(),
                 phone: row.querySelector('[data-field="phone"]').textContent.trim(),
                 email: row.querySelector('[data-field="email"]').textContent.trim(),
-                relevant_semesters: row.querySelector('[data-field="relevant_semesters"]').textContent.trim(),
+                relevant_semesters: row.querySelector('[data-field="relevant_semesters"]').value,
                 years_of_experience: row.querySelector('[data-field="years_of_experience"]').textContent.trim(),
                 available_days_to_assign: row.querySelector('[data-field="available_days_to_assign"]').textContent.trim(),
                 max_students_per_day: row.querySelector('[data-field="max_students_per_day"]').textContent.trim(),
