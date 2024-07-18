@@ -1,5 +1,5 @@
 /* Import Google Fonts */
-@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Alef:wght@400;700&family=Roboto:wght@400;500;700&display=swap');
 
 /* Variables */
 :root {
@@ -14,7 +14,7 @@
 
 /* Base Styles */
 body {
-    font-family: 'Roboto', sans-serif;
+    font-family: 'Alef', 'Roboto', sans-serif;
     background-color: #F9F9F9;
     color: #333333;
     margin: 0;
@@ -29,6 +29,7 @@ body {
 }
 
 .navbar-brand, .nav-link {
+    font-family: 'Alef', 'Roboto', sans-serif;
     color: var(--white) !important;
 }
 
@@ -44,7 +45,7 @@ body {
 h1, h2, h3 {
     color: var(--heading-color);
     font-weight: 700;
-    font-family: 'Roboto', sans-serif;
+    font-family: 'Alef', 'Roboto', sans-serif;
     margin-bottom: 20px;
 }
 
@@ -82,12 +83,13 @@ h1 {
     background-color: var(--white) !important;
 }
 
-/* /* Button Styles */
+/* Button Styles */
 button, .btn {
     background-color: var(--primary-color) !important;
     color: var(--white) !important;
     border-radius: 4px; /* Changed from 20px to 4px for more rectangular buttons */
     padding: 10px 20px;
+    font-family: 'Alef', 'Roboto', sans-serif;
     font-weight: 500;
     transition: background-color 0.3s ease;
     border: none;
@@ -106,6 +108,11 @@ button:hover, .btn:hover {
     background-color: #e63946 !important;
 }
 
+/* Ensure buttons with the same minimum width */
+.btn-primary, .btn-danger {
+    min-width: 120px; /* Adjust the width based on the longer text button */
+}
+
 .table-success .btn, .table-danger .btn, .table-warning .btn {
     border: none; /* Ensure no border for buttons in success, danger, and warning rows */
 }
@@ -116,7 +123,6 @@ button:hover, .btn:hover {
     padding: 10px 20px;
     border: none;
 }
-
 
 /* Form Styles */
 form {
@@ -217,7 +223,6 @@ form {
     margin: 0;
     padding: 0;
 }
-
 
 .form-check {
     display: flex;

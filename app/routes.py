@@ -709,3 +709,31 @@ def process_backup_file(filepath):
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in {'xlsx'}
 
+
+@bp.route('/editable_instructors', methods=['GET', 'POST'])
+def editable_instructors():
+    if request.method == 'POST':
+        data = request.get_json()
+        if data:
+            for instructor_data in data:
+                instructor = ClinicalInstructor.query.get(instructor_data['id'])
+                if instructor:
+                    instructor.name = instructor_data['name']
+                    instructor.practice_location = instructor_data['practice_location']
+                    instructor.area_of_expertise_id = Field.query.filter_by(name=instructor_data['area_of_expertise']).first().id
+                    instructor.city = instructor_data['city']
+                    instructor.address = instructor_data['address']
+                    instructor.phone = instructor_data['phone']
+                    instructor.email = instructor_data['email']
+                    instructor.relevant_semesters = instructor_data['relevant_semesters']
+                    instructor.years_of_experience = instructor_data['years_of_experience']
+                    instructor.available_days_to_assign = instructor_data['available_days_to_assign']
+                    instructor.max_students_per_day = instructor_data['max_students_per_day']
+                    instructor.color = instructor_data['color']
+            db.session.commit()
+            return jsonify({'success': True}), 200
+        return jsonify({'success': False}), 400
+    
+    instructors = ClinicalInstructor.query.all()
+    fields = Field.query.all()
+    return render_template('editable_instructors.html', instructors=instructors, fields=fields)

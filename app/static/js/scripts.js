@@ -2,14 +2,14 @@ function fetchInstructors(studentId, tooltipElement) {
     fetch(`/relevant_instructors/${studentId}`)
         .then(response => response.json())
         .then(data => {
-            tooltipElement.innerHTML = '<strong>Relevant Instructors:</strong>';
+            tooltipElement.innerHTML = '<strong>שיבוצים רלוונטיים:</strong>';
             data.relevant_instructors.forEach(instructor => {
                 let p = document.createElement('p');
                 p.classList.add('green-background');
                 p.textContent = `${instructor.name} - ${instructor.area_of_expertise} - ${instructor.day}`;
                 tooltipElement.appendChild(p);
             });
-            tooltipElement.innerHTML += '<strong>Irrelevant Instructors:</strong>';
+            tooltipElement.innerHTML += '<strong>לא רלוונטי:</strong>';
             data.irrelevant_instructors.forEach(instructor => {
                 let p = document.createElement('p');
                 p.style.textDecoration = 'line-through';

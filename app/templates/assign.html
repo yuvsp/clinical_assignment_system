@@ -31,7 +31,7 @@
                     {% if assignment and student_already_assigned_to_instructor %}
                     <button type="submit" name="cancel_assignment_id" value="{{ assignment.id }}" class="btn btn-danger">ביטול שיבוץ</button>
                     {% elif assignment_count < 3 %}
-                    <button type="submit" name="instructor_id" value="{{ instructor.id }}" onclick="document.getElementById('assigned_day').value='{{ day }}'" class="btn btn-primary">שיבוץ</button>
+                    <button type="submit" name="instructor_id" value="{{ instructor.id }}" onclick="document.getElementById('assigned_day').value='{{ day }}'" class="btn btn-primary" >שיבוץ</button>
                     {% endif %}
                 </td>
             </tr>
@@ -39,7 +39,7 @@
             {% for instructor, day, reason in irrelevant_instructors %}
             <tr class="{% if reason == 'תחום לא מועדף של הסטודנטית' %}table-warning{% else %}table-danger{% endif %}">
                 <td class="text-right" style="text-decoration: line-through;">{{ instructor.name }}</td>
-                <td class="text-right" style="text-decoration: line-through;">{{ instructor.area_of_expertise.name }} ({{ instructor.name }}) [{{ instructor.practice_location }}]</td>
+                <td class="text-right" style="text-decoration: line-through;">{{ instructor.area_of_expertise.name }} [{{ instructor.practice_location }}]</td>
                 <td class="text-right" style="text-decoration: line-through;">{{ day }}</td>
                 <td class="text-right">{{ reason }}</td>
                 <td>
