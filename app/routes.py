@@ -143,7 +143,8 @@ def add_student():
             preferred_field_id_1=request.form['preferred_fields_1'],
             preferred_field_id_2=request.form['preferred_fields_2'],
             preferred_field_id_3=request.form['preferred_fields_3'],
-            preferred_practice_area=request.form['preferred_practice_area']
+            preferred_practice_area=request.form['preferred_practice_area'],
+            semester=request.form['semester']  # Add semester to the form processing
         )
         db.session.add(new_student)
         db.session.commit()
@@ -314,7 +315,8 @@ def download_students():
             'Preferred Field 1': student.preferred_field_1.name if student.preferred_field_1 else '',
             'Preferred Field 2': student.preferred_field_2.name if student.preferred_field_2 else '',
             'Preferred Field 3': student.preferred_field_3.name if student.preferred_field_3 else '',
-            'Preferred Practice Area': student.preferred_practice_area
+            'Preferred Practice Area': student.preferred_practice_area,
+            'Semester': student.semester  # Include semester in the data
         }
         data.append(row)
 
@@ -377,105 +379,114 @@ def download_assignments():
 def upload_students():
     if request.method == 'POST':
         if 'file' not in request.files:
-            flash('No file part')
+            flash('No file part', 'danger')
             return redirect(request.url)
         file = request.files['file']
         if file.filename == '':
-            flash('No selected file')
+            flash('No selected file', 'danger')
             return redirect(request.url)
         if file and allowed_file(file.filename):
             filename = secure_filename(file.filename)
             filepath = os.path.join(UPLOAD_FOLDER, filename)
             file.save(filepath)
-            process_student_file(filepath)
+            try:
+                process_student_file(filepath)
+            except Exception as e:
+                flash(f"Error processing file: {e}", 'danger')
             return redirect(url_for('main.students_view'))
     return render_template('upload_students.html')
 
 def process_student_file(filepath):
-    df = pd.read_excel(filepath)
-    # Clear existing records
-    Student.query.delete()
-    db.session.commit()
+    try:
+        df = pd.read_excel(filepath)
+        
+        # Check for required columns
+        required_columns = ['Name', 'Preferred Field 1', 'Preferred Field 2', 'Preferred Field 3', 'Preferred Practice Area', 'Semester']
+        for col in required_columns:
+            if col not in df.columns:
+                raise ValueError(f"Missing column: {col}")
+        
+        # Clear existing records
+        Student.query.delete()
+        db.session.commit()
 
-    # Add new records from the Excel file
-    for _, row in df.iterrows():
-        new_student = Student(
-            name=row['Name'],
-            preferred_field_1=Field.query.filter_by(name=row['Preferred Field 1']).first(),
-            preferred_field_2=Field.query.filter_by(name=row['Preferred Field 2']).first(),
-            preferred_field_3=Field.query.filter_by(name=row['Preferred Field 3']).first(),
-            preferred_practice_area=row['Preferred Practice Area']
-        )
-        db.session.add(new_student)
-    db.session.commit()
+        # Add new records from the Excel file
+        for _, row in df.iterrows():
+            new_student = Student(
+                name=row['Name'],
+                preferred_field_1=Field.query.filter_by(name=row['Preferred Field 1']).first(),
+                preferred_field_2=Field.query.filter_by(name=row['Preferred Field 2']).first(),
+                preferred_field_3=Field.query.filter_by(name=row['Preferred Field 3']).first(),
+                preferred_practice_area=row['Preferred Practice Area'],
+                semester=row.get('Semester', 'א')  # Default to 'א' if the semester field is missing
+            )
+            db.session.add(new_student)
+        db.session.commit()
+    
+    except Exception as e:
+        flash(str(e), 'danger')
+        db.session.rollback()
+
 
 @bp.route('/upload_instructors', methods=['GET', 'POST'])
 def upload_instructors():
     if request.method == 'POST':
         if 'file' not in request.files:
-            flash('No file part')
+            flash('No file part', 'danger')
             return redirect(request.url)
         file = request.files['file']
         if file.filename == '':
-            flash('No selected file')
+            flash('No selected file', 'danger')
             return redirect(request.url)
         if file and allowed_file(file.filename):
             filename = secure_filename(file.filename)
             filepath = os.path.join(UPLOAD_FOLDER, filename)
             file.save(filepath)
-            process_instructor_file(filepath)
+            try:
+                process_instructor_file(filepath)
+            except Exception as e:
+                flash(f"Error processing file: {e}", 'danger')
             return redirect(url_for('main.instructors_view'))
     return render_template('upload_instructors.html')
 
 def process_instructor_file(filepath):
-    df = pd.read_excel(filepath)
-    
-    # Define the expected column names
-    expected_columns = {
-        'Name': 'name',
-        'Practice Location': 'practice_location',
-        'Area of Expertise': 'area_of_expertise_id',
-        'City': 'city',
-        'Address': 'address',
-        'Phone': 'phone',
-        'Email': 'email',
-        'Relevant Semesters': 'relevant_semesters',
-        'Years of Experience': 'years_of_experience',
-        'Available Days to Assign': 'available_days_to_assign',
-        'Max Students Per Day': 'max_students_per_day',
-        'Color': 'color'
-    }
-    
-    # Check if all expected columns are present
-    missing_columns = [col for col in expected_columns.keys() if col not in df.columns]
-    if missing_columns:
-        raise KeyError(f"Missing columns in the uploaded file: {', '.join(missing_columns)}")
-    
-    # Clear existing records
-    ClinicalInstructor.query.delete()
-    db.session.commit()
+    try:
+        df = pd.read_excel(filepath)
+        
+        required_columns = ['Name', 'Practice Location', 'Area of Expertise', 'City', 'Address', 'Phone', 'Email', 'Relevant Semesters', 'Years of Experience', 'Available Days to Assign', 'Max Students Per Day', 'Color']
+        for col in required_columns:
+            if col not in df.columns:
+                raise ValueError(f"Missing column: {col}")
+        
+        # Clear existing records
+        ClinicalInstructor.query.delete()
+        db.session.commit()
 
-    # Add new records from the Excel file
-    for _, row in df.iterrows():
-        color = row.get('Color')
-        if not color or not isinstance(color, str) or len(color) != 7 or not color.startswith('#'):
-            color = generate_color()
-        new_instructor = ClinicalInstructor(
-            name=row['Name'],
-            practice_location=row['Practice Location'],
-            area_of_expertise_id=Field.query.filter_by(name=row['Area of Expertise']).first().id,
-            city=row['City'],
-            address=row['Address'],
-            phone=row['Phone'],
-            email=row['Email'],
-            relevant_semesters=row['Relevant Semesters'],
-            years_of_experience=row['Years of Experience'],
-            available_days_to_assign=row['Available Days to Assign'],
-            max_students_per_day=row['Max Students Per Day'],
-            color=color
-        )
-        db.session.add(new_instructor)
-    db.session.commit()
+        # Add new records from the Excel file
+        for _, row in df.iterrows():
+            color = row.get('Color')
+            if not color or not isinstance(color, str) or len(color) != 7 or not color.startswith('#'):
+                color = generate_color()
+            new_instructor = ClinicalInstructor(
+                name=row['Name'],
+                practice_location=row['Practice Location'],
+                area_of_expertise_id=Field.query.filter_by(name=row['Area of Expertise']).first().id,
+                city=row['City'],
+                address=row['Address'],
+                phone=row['Phone'],
+                email=row['Email'],
+                relevant_semesters=row['Relevant Semesters'],
+                years_of_experience=row['Years of Experience'],
+                available_days_to_assign=row['Available Days to Assign'],
+                max_students_per_day=row['Max Students Per Day'],
+                color=color
+            )
+            db.session.add(new_instructor)
+        db.session.commit()
+    
+    except Exception as e:
+        flash(str(e), 'danger')
+        db.session.rollback()
 
 @bp.route('/remove_assignment/<int:assignment_id>', methods=['POST']) 
 def remove_assignment(assignment_id):
