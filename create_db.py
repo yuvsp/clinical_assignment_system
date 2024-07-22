@@ -7,8 +7,11 @@ from app.models import Field, ClinicalInstructor, Student, Assignment
 # Setup logging
 logging.basicConfig(level=logging.DEBUG)
 
-# Ensure the directory exists
-db_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'data', 'clinical_assignment.db')
+# Get the database path from environment variable or default
+db_path = os.getenv('DATABASE_URL', 'sqlite:////data/clinical_assignment.db')
+if db_path.startswith('sqlite:///'):
+    db_path = db_path.replace('sqlite:///', '')
+
 db_dir = os.path.dirname(db_path)
 
 logging.debug(f"Database path: {db_path}")
