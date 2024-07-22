@@ -160,7 +160,7 @@ def assign_instructor(student_id):
             if assignment:
                 db.session.delete(assignment)
                 db.session.commit()
-            return redirect(url_for('main.current_assignments'))
+            return redirect(url_for('main.assign_instructor', student_id=student_id))
 
         instructor_id = request.form['instructor_id']
         assigned_day = request.form['assigned_day']
@@ -168,12 +168,12 @@ def assign_instructor(student_id):
         # Check if the student already has an assignment on the selected day
         existing_assignment = Assignment.query.filter_by(student_id=student.id, assigned_day=assigned_day).first()
         if existing_assignment:
-            return redirect(url_for('main.current_assignments'))  # Redirect if already assigned
+            return redirect(url_for('main.assign_instructor', student_id=student_id))  # Redirect if already assigned
 
         assignment = Assignment(student_id=student.id, instructor_id=instructor_id, assigned_day=assigned_day)
         db.session.add(assignment)
         db.session.commit()
-        return redirect(url_for('main.current_assignments'))
+        return redirect(url_for('main.assign_instructor', student_id=student_id))
 
     preferred_fields = [
         student.preferred_field_1.name if student.preferred_field_1 else '',
