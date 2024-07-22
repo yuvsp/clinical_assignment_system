@@ -3,6 +3,7 @@
 {% block content %}
 <h1 class="mb-4 text-right">הוסף סטודנטית</h1>
 <form action="{{ url_for('main.add_student') }}" method="post" dir="rtl">
+    <!-- Existing form fields -->
     <div class="form-group text-right">
         <label for="name">שם:</label>
         <input type="text" id="name" name="name" class="form-control" required>
@@ -34,6 +35,13 @@
     <div class="form-group text-right">
         <label for="preferred_practice_area">אזור תרגול מועדף:</label>
         <input type="text" id="preferred_practice_area" name="preferred_practice_area" class="form-control" required>
+    </div>
+    <div class="form-group text-right">
+        <label for="semester">סמסטר:</label>
+        <select id="semester" name="semester" class="form-control" required>
+            <option value="א">א</option>
+            <option value="ב">ב</option>
+        </select>
     </div>
     <button type="submit" class="btn btn-primary">הוסף סטודנטית</button>
 </form>

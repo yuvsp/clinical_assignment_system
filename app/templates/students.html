@@ -16,6 +16,7 @@
             <th class="text-right">שם</th>
             <th class="text-right">תחומים מועדפים</th>
             <th class="text-right">אזור תרגול מועדף</th>
+            <th class="text-right">סמסטר</th>  <!-- Add semester column header -->
             <th>פעולה</th>
         </tr>
     </thead>
@@ -29,6 +30,7 @@
                 {{ student.preferred_field_3.name if student.preferred_field_3 else '' }}
             </td>
             <td class="text-right">{{ student.preferred_practice_area }}</td>
+            <td class="text-right">{{ student.semester }}</td>  <!-- Add semester data -->
             <td class="text-center">
                 <a href="{{ url_for('main.assign_instructor', student_id=student.id) }}" class="btn btn-success">שיבוץ</a>
             </td>

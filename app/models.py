@@ -27,6 +27,7 @@ class Student(db.Model):
     preferred_field_id_3 = db.Column(db.Integer, db.ForeignKey('field.id'), nullable=False)
     preferred_field_3 = db.relationship('Field', foreign_keys=[preferred_field_id_3], backref='students_3')
     preferred_practice_area = db.Column(db.String(100), nullable=False)
+    semester = db.Column(db.String(1), nullable=False, default='א')  # New field for semester
 
 class Assignment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
