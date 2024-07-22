@@ -245,3 +245,37 @@ form {
     margin-left: 1rem;
     margin-right: 1.5rem;
 }
+
+.instructor-name {
+    position: relative;
+    padding-right: 12%;
+}
+
+.instructor-color {
+    background-color: var(--instructor-color);
+    width: 10%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    right: 0;
+}
+
+.vertical-header {
+    writing-mode: vertical-rl;
+    text-align: center;
+    transform: rotate(180deg);
+    white-space: nowrap;
+    vertical-align: middle;
+    width: 30px; /* Adjust the width as needed */
+}
+
+.color-input {
+    width: 50px;  /* Adjust the width as needed */
+}
+.email-text {
+    font-size: 12px;  /* Adjust the text size to be smaller */
+    word-wrap: break-word;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}

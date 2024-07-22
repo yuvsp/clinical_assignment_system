@@ -14,32 +14,39 @@
             <th class="text-right">שם</th>
             <th class="text-right">מקום תרגול</th>
             <th class="text-right">תחום התמחות</th>
+            <th class="text-right">ותק</th>
             <th class="text-right">עיר</th>
             <th class="text-right">כתובת</th>
             <th class="text-right">טלפון</th>
             <th class="text-right">אימייל</th>
-            <th class="text-right">סמסטרים רלוונטיים</th>
-            <th class="text-right">שנות ניסיון</th>
-            <th class="text-right">ימי זמינות להקצאה</th>
-            <th class="text-right">מספר מקסימלי של סטודנטיות ליום</th>
-            <th class="text-right">צבע</th>
+            <th class="text-right">ימים זמינים</th>
+            <th class="text-right">יום אחד בלבד</th>
+            <th class="text-right vertical-header">מקס' סטודנטיות ביום</th>
+            <th class="text-right vertical-header">סמסטרים רלוונטיים</th>
         </tr>
     </thead>
     <tbody>
         {% for instructor in instructors %}
         <tr>
-            <td class="text-right">{{ instructor.name }}</td>
+            <td class="text-right instructor-name" style="--instructor-color: {{ instructor.color }};">
+                <div class="instructor-color"></div>
+                {{ instructor.name }}
+            </td>
             <td class="text-right">{{ instructor.practice_location }}</td>
             <td class="text-right">{{ instructor.area_of_expertise.name }}</td>
+            <td class="text-right">{{ instructor.years_of_experience }}</td>
             <td class="text-right">{{ instructor.city }}</td>
             <td class="text-right">{{ instructor.address }}</td>
             <td class="text-right">{{ instructor.phone }}</td>
-            <td class="text-right">{{ instructor.email }}</td>
-            <td class="text-right">{{ instructor.relevant_semesters }}</td>
-            <td class="text-right">{{ instructor.years_of_experience }}</td>
+            <td class="text-right email-text">{{ instructor.email }}</td>
             <td class="text-right">{{ instructor.available_days_to_assign }}</td>
+            <td class="text-right">
+                {% if instructor.available_days_to_assign.split(',') | length > 1 %}
+                    {{ 'כן' if instructor.single_assignment else 'לא' }}
+                {% endif %}
+            </td>
             <td class="text-right">{{ instructor.max_students_per_day }}</td>
-            <td class="text-right" style="background-color: {{ instructor.color }};">{{ instructor.color }}</td>
+            <td class="text-right">{{ instructor.relevant_semesters }}</td>
         </tr>
         {% endfor %}
     </tbody>

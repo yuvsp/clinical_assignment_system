@@ -159,8 +159,19 @@ def assign_instructor(student_id):
             assignment_id = request.form['cancel_assignment_id']
             assignment = Assignment.query.get(assignment_id)
             if assignment:
+                instructor = assignment.instructor
                 db.session.delete(assignment)
                 db.session.commit()
+
+                # Restore availability if all assignments are canceled
+                if instructor.single_assignment:
+                    remaining_assignments = Assignment.query.filter_by(instructor_id=instructor.id).count()
+                    if remaining_assignments == 0:
+                        original_days = [day.replace('-לא-זמין', '') for day in instructor.available_days_to_assign.split(',')]
+                        instructor.available_days_to_assign = ','.join(original_days)
+                        db.session.add(instructor)
+                        db.session.commit()
+
             return redirect(url_for('main.assign_instructor', student_id=student_id))
 
         instructor_id = request.form['instructor_id']
@@ -173,6 +184,15 @@ def assign_instructor(student_id):
 
         assignment = Assignment(student_id=student.id, instructor_id=instructor_id, assigned_day=assigned_day)
         db.session.add(assignment)
+
+        instructor = ClinicalInstructor.query.get(instructor_id)
+        if instructor.single_assignment:
+            # Mark other days as unavailable without removing them
+            available_days = instructor.available_days_to_assign.split(',')
+            available_days_with_suffix = [day if day == assigned_day else day + '-לא-זמין' for day in available_days]
+            instructor.available_days_to_assign = ','.join(available_days_with_suffix)
+            db.session.add(instructor)
+
         db.session.commit()
         return redirect(url_for('main.assign_instructor', student_id=student_id))
 
@@ -192,6 +212,8 @@ def assign_instructor(student_id):
     for instructor in all_instructors:
         available_days = instructor.available_days_to_assign.split(',')
         for day in available_days:
+            if 'לא-זמין' in day:
+                continue
             assigned_count = Assignment.query.filter_by(instructor_id=instructor.id, assigned_day=day).count()
             if day in student_assigned_days:
                 student_already_assigned_to_instructor = any(assignment.instructor_id == instructor.id for assignment in student_assignments)
@@ -288,7 +310,8 @@ def download_instructors():
         'Years of Experience': instructor.years_of_experience,
         'Available Days to Assign': instructor.available_days_to_assign,
         'Max Students Per Day': instructor.max_students_per_day,
-        'Color': instructor.color
+        'Color': instructor.color,
+        'Single Assignment': instructor.single_assignment  # Include single_assignment in the data
     } for instructor in instructors]
 
     df = pd.DataFrame(data)
@@ -453,7 +476,7 @@ def process_instructor_file(filepath):
     try:
         df = pd.read_excel(filepath)
         
-        required_columns = ['Name', 'Practice Location', 'Area of Expertise', 'City', 'Address', 'Phone', 'Email', 'Relevant Semesters', 'Years of Experience', 'Available Days to Assign', 'Max Students Per Day', 'Color']
+        required_columns = ['Name', 'Practice Location', 'Area of Expertise', 'City', 'Address', 'Phone', 'Email', 'Relevant Semesters', 'Years of Experience', 'Available Days to Assign', 'Max Students Per Day', 'Color', 'Single Assignment']
         for col in required_columns:
             if col not in df.columns:
                 raise ValueError(f"Missing column: {col}")
@@ -479,7 +502,8 @@ def process_instructor_file(filepath):
                 years_of_experience=row['Years of Experience'],
                 available_days_to_assign=row['Available Days to Assign'],
                 max_students_per_day=row['Max Students Per Day'],
-                color=color
+                color=color,
+                single_assignment=row['Single Assignment'] if 'Single Assignment' in row and not pd.isnull(row['Single Assignment']) else False  # Include single_assignment
             )
             db.session.add(new_instructor)
         db.session.commit()
@@ -741,6 +765,14 @@ def editable_instructors():
                     instructor.available_days_to_assign = instructor_data['available_days_to_assign']
                     instructor.max_students_per_day = instructor_data['max_students_per_day']
                     instructor.color = instructor_data['color']
+                    old_single_assignment = instructor.single_assignment
+                    instructor.single_assignment = instructor_data['single_assignment']
+                    
+                    # If single_assignment changed from True to False, clear the suffix
+                    if old_single_assignment and not instructor.single_assignment:
+                        original_days = [day.replace('-לא-זמין', '') for day in instructor.available_days_to_assign.split(',')]
+                        instructor.available_days_to_assign = ','.join(original_days)
+                    
             db.session.commit()
             return jsonify({'success': True}), 200
         return jsonify({'success': False}), 400

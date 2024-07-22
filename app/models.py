@@ -16,6 +16,7 @@ class ClinicalInstructor(db.Model):
     available_days_to_assign = db.Column(db.String(100), nullable=False)
     max_students_per_day = db.Column(db.Integer, nullable=False)
     color = db.Column(db.String(7), nullable=False, default='#FFFFFF')  # Default to white
+    single_assignment = db.Column(db.Boolean, default=False)  # New field
 
 class Student(db.Model):
     id = db.Column(db.Integer, primary_key=True)
