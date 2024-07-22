@@ -9,21 +9,25 @@
             <th class="text-right">שם</th>
             <th class="text-right">מקום תרגול</th>
             <th class="text-right">תחום התמחות</th>
+            <th class="text-right">ותק</th>
             <th class="text-right">עיר</th>
             <th class="text-right">כתובת</th>
             <th class="text-right">טלפון</th>
-            <th class="text-right">אימייל</th>
-            <th class="text-right">סמסטרים רלוונטיים</th>
-            <th class="text-right">שנות ניסיון</th>
-            <th class="text-right">ימי זמינות להקצאה</th>
-            <th class="text-right">מספר מקסימלי של סטודנטיות ליום</th>
+            <th class="text-right email-column">אימייל</th>
+            <th class="text-right">ימים זמינים</th>
+            <th class="text-right">יום אחד בלבד</th>
+            <th class="text-right vertical-header">מקס' סטודנטיות ביום</th>
+            <th class="text-right vertical-header">סמסטרים רלוונטיים</th>
             <th class="text-right">צבע</th>
         </tr>
     </thead>
     <tbody>
         {% for instructor in instructors %}
         <tr data-id="{{ instructor.id }}">
-            <td contenteditable="true" data-field="name">{{ instructor.name }}</td>
+            <td class="text-right instructor-name" style="--instructor-color: {{ instructor.color }};">
+                <div class="instructor-color"></div>
+                <div contenteditable="true" data-field="name">{{ instructor.name }}</div>
+            </td>
             <td contenteditable="true" data-field="practice_location">{{ instructor.practice_location }}</td>
             <td>
                 <select class="form-control" data-field="area_of_expertise">
@@ -32,21 +36,26 @@
                     {% endfor %}
                 </select>
             </td>
+            <td contenteditable="true" data-field="years_of_experience">{{ instructor.years_of_experience }}</td>
             <td contenteditable="true" data-field="city">{{ instructor.city }}</td>
             <td contenteditable="true" data-field="address">{{ instructor.address }}</td>
             <td contenteditable="true" data-field="phone">{{ instructor.phone }}</td>
-            <td contenteditable="true" data-field="email">{{ instructor.email }}</td>
+            <td contenteditable="true" data-field="email" class="email-text">{{ instructor.email }}</td>
+            <td contenteditable="true" data-field="available_days_to_assign">{{ instructor.available_days_to_assign }}</td>
+            <td>
+                {% if instructor.available_days_to_assign.split(',') | length > 1 %}
+                    <input type="checkbox" data-field="single_assignment" {% if instructor.single_assignment %}checked{% endif %}>
+                {% endif %}
+            </td>
+            <td contenteditable="true" data-field="max_students_per_day">{{ instructor.max_students_per_day }}</td>
             <td>
                 <select class="form-control" data-field="relevant_semesters">
                     <option value="א" {% if instructor.relevant_semesters == 'א' %}selected{% endif %}>א</option>
                     <option value="ב" {% if instructor.relevant_semesters == 'ב' %}selected{% endif %}>ב</option>
                 </select>
             </td>
-            <td contenteditable="true" data-field="years_of_experience">{{ instructor.years_of_experience }}</td>
-            <td contenteditable="true" data-field="available_days_to_assign">{{ instructor.available_days_to_assign }}</td>
-            <td contenteditable="true" data-field="max_students_per_day">{{ instructor.max_students_per_day }}</td>
             <td>
-                <input type="color" class="form-control" value="{{ instructor.color }}" data-field="color">
+                <input type="color" class="form-control color-input" value="{{ instructor.color }}" data-field="color">
             </td>
         </tr>
         {% endfor %}
@@ -66,14 +75,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 name: row.querySelector('[data-field="name"]').textContent.trim(),
                 practice_location: row.querySelector('[data-field="practice_location"]').textContent.trim(),
                 area_of_expertise: row.querySelector('[data-field="area_of_expertise"]').value,
+                years_of_experience: row.querySelector('[data-field="years_of_experience"]').textContent.trim(),
                 city: row.querySelector('[data-field="city"]').textContent.trim(),
                 address: row.querySelector('[data-field="address"]').textContent.trim(),
                 phone: row.querySelector('[data-field="phone"]').textContent.trim(),
                 email: row.querySelector('[data-field="email"]').textContent.trim(),
-                relevant_semesters: row.querySelector('[data-field="relevant_semesters"]').value,
-                years_of_experience: row.querySelector('[data-field="years_of_experience"]').textContent.trim(),
                 available_days_to_assign: row.querySelector('[data-field="available_days_to_assign"]').textContent.trim(),
+                single_assignment: row.querySelector('[data-field="single_assignment"]') ? row.querySelector('[data-field="single_assignment"]').checked : false,
                 max_students_per_day: row.querySelector('[data-field="max_students_per_day"]').textContent.trim(),
+                relevant_semesters: row.querySelector('[data-field="relevant_semesters"]').value,
                 color: row.querySelector('[data-field="color"]').value
             };
             data.push(rowData);
@@ -90,6 +100,7 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(result => {
             if (result.success) {
                 alert('השינויים נשמרו בהצלחה');
+                window.location.reload();  // Refresh the page after saving changes
             } else {
                 alert('שגיאה בשמירת השינויים');
             }
