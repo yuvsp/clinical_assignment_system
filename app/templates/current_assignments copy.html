@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1 class="mb-4 text-right">הקצאות נוכחיות</h1>
+<div class="mb-4">
+    <label for="semester-toggle">בחר סמסטר:</label>
+    <select id="semester-toggle" class="form-control d-inline-block" style="width: auto;">
+        <option value="א">א</option>
+        <option value="ב">ב</option>
+    </select>
+</div>
+<table class="table table-bordered" dir="rtl" id="assignments-table">
+    <thead class="thead-light">
+        <tr>
+            <th class="text-right">שם</th>
+            <th class="text-right">תחום התמחות 1</th>
+            <th class="text-right">תחום התמחות 2</th>
+            <th class="text-right">תחום התמחות 3</th>
+            <th class="text-right">הקצאה 1</th>
+            <th class="text-right">הקצאה 2</th>
+            <th class="text-right">הקצאה 3</th>
+            <th class="text-right">סמסטר</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for student_id, student_data in student_assignments.items() %}
+        <tr class="assignment-row" data-semester="{{ student_data.semester }}">
+            <td class="text-right">{{ student_data.name }}</td>
+            <td class="text-right">{{ student_data.preferred_fields[0] }}</td>
+            <td class="text-right">{{ student_data.preferred_fields[1] }}</td>
+            <td class="text-right">{{ student_data.preferred_fields[2] }}</td>
+            <td class="text-right">{{ student_data.assignments[0].location if student_data.assignments[0] else '' }}</td>
+            <td class="text-right">{{ student_data.assignments[1].location if student_data.assignments[1] else '' }}</td>
+            <td class="text-right">{{ student_data.assignments[2].location if student_data.assignments[2] else '' }}</td>
+            <td class="text-right">{{ student_data.semester }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const semesterToggle = document.getElementById('semester-toggle');
+    const assignmentRows = document.querySelectorAll('.assignment-row');
+
+    function filterAssignments() {
+        const selectedSemester = semesterToggle.value;
+        assignmentRows.forEach(row => {
+            if (row.dataset.semester === selectedSemester) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    }
+
+    semesterToggle.addEventListener('change', filterAssignments);
+    filterAssignments(); // Initial filter
+});
+</script>
+{% endblock %}

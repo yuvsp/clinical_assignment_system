@@ -43,7 +43,8 @@ def main_view():
 
 @bp.route('/current_assignments')
 def current_assignments():
-    students = Student.query.all()
+    semester = request.args.get('semester', 'א')  # Default to semester 'א'
+    students = Student.query.filter_by(semester=semester).all()
     assignments = Assignment.query.all()
     student_assignments = {}
 
@@ -60,13 +61,14 @@ def current_assignments():
 
     for assignment in assignments:
         student_id = assignment.student_id
-        student_data = student_assignments[student_id]
-        for i, preferred_field in enumerate(student_data['preferred_fields']):
-            if len(student_data['assignments']) > i and student_data['assignments'][i] is None:
-                student_data['assignments'][i] = assignment
-                break
+        student_data = student_assignments.get(student_id)
+        if student_data:
+            for i, preferred_field in enumerate(student_data['preferred_fields']):
+                if len(student_data['assignments']) > i and student_data['assignments'][i] is None:
+                    student_data['assignments'][i] = assignment
+                    break
 
-    return render_template('current_assignments.html', student_assignments=student_assignments)
+    return render_template('current_assignments.html', student_assignments=student_assignments, semester=semester)
 
 @bp.route('/instructors')
 def instructors_view():
@@ -521,9 +523,11 @@ def remove_assignment(assignment_id):
 
 @bp.route('/assignments_view')
 def assignments_view():
-    students = Student.query.all()
+    semester = request.args.get('semester', 'א')  # Default to semester 'א'
+    students = Student.query.filter_by(semester=semester).all()
     days_of_week = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי']
     
+    # Create a dictionary for assignments data
     assignments_data = {student.name: {day: None for day in days_of_week} for student in students}
     instructor_colors = {instructor.name: instructor.color for instructor in ClinicalInstructor.query.all()}
     
@@ -531,20 +535,22 @@ def assignments_view():
     
     for assignment in assignments:
         student_name = assignment.student.name
-        day = assignment.assigned_day
-        instructor_name = assignment.instructor.name
-        practice_location = assignment.instructor.practice_location
-        area_of_expertise = assignment.instructor.area_of_expertise.name
-        color_class = f"color-{instructor_name.replace(' ', '-').replace('.', '').lower()}"
-        assignments_data[student_name][day] = {
-            'text': f"{instructor_name} - {practice_location} - {area_of_expertise}",
-            'color_class': color_class
-        }
+        if student_name in assignments_data:  # Ensure the student is in the filtered students list
+            day = assignment.assigned_day
+            instructor_name = assignment.instructor.name
+            practice_location = assignment.instructor.practice_location
+            area_of_expertise = assignment.instructor.area_of_expertise.name
+            color_class = f"color-{instructor_name.replace(' ', '-').replace('.', '').lower()}"
+            assignments_data[student_name][day] = {
+                'text': f"{instructor_name} - {practice_location} - {area_of_expertise}",
+                'color_class': color_class
+            }
 
-    # Add emoji indicators
     student_assignments_count = {student.name: 0 for student in students}
     for assignment in assignments:
-        student_assignments_count[assignment.student.name] += 1
+        student_name = assignment.student.name
+        if student_name in student_assignments_count:  # Ensure the student is in the filtered students list
+            student_assignments_count[student_name] += 1
 
     student_assignments_status = {}
     for student in students:
@@ -554,7 +560,7 @@ def assignments_view():
         else:
             student_assignments_status[student.name] = f"❌ {student.name}"
     
-    return render_template('assignments_view.html', assignments_data=assignments_data, days_of_week=days_of_week, instructor_colors=instructor_colors, student_assignments_status=student_assignments_status, students=students)
+    return render_template('assignments_view.html', assignments_data=assignments_data, days_of_week=days_of_week, instructor_colors=instructor_colors, student_assignments_status=student_assignments_status, students=students, semester=semester)
 
 @bp.route('/download_fields')
 def download_fields():
@@ -780,3 +786,32 @@ def editable_instructors():
     instructors = ClinicalInstructor.query.all()
     fields = Field.query.all()
     return render_template('editable_instructors.html', instructors=instructors, fields=fields)
+
+@bp.route('/current_assignments_table')
+def current_assignments_table():
+    semester = request.args.get('semester', 'א')  # Default to semester 'א'
+    students = Student.query.filter_by(semester=semester).all()
+    assignments = Assignment.query.all()
+    student_assignments = {}
+
+    for student in students:
+        student_assignments[student.id] = {
+            'name': student.name,
+            'preferred_fields': [
+                student.preferred_field_1.name if student.preferred_field_1 else '',
+                student.preferred_field_2.name if student.preferred_field_2 else '',
+                student.preferred_field_3.name if student.preferred_field_3 else ''
+            ],
+            'assignments': [None, None, None]  # Placeholder for three assignments
+        }
+
+    for assignment in assignments:
+        student_id = assignment.student_id
+        student_data = student_assignments.get(student_id)
+        if student_data:
+            for i, preferred_field in enumerate(student_data['preferred_fields']):
+                if len(student_data['assignments']) > i and student_data['assignments'][i] is None:
+                    student_data['assignments'][i] = assignment
+                    break
+
+    return render_template('current_assignments_table.html', student_assignments=student_assignments, semester=semester)

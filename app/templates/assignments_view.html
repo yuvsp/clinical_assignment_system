@@ -2,7 +2,18 @@
 
 {% block content %}
 <h1 class="mb-4 text-right">תצוגת שיבוצים</h1>
+
+<div class="mb-3 text-center">
+    <label class="semester-label">סמסטר א</label>
+    <label class="switch">
+        <input type="checkbox" id="semester_toggle" onclick="toggleSemester()" {{ 'checked' if semester == 'א' else '' }}>
+        <span class="slider round"></span>
+    </label>
+    <label class="semester-label">סמסטר ב</label>
+</div>
+
 <a href="{{ url_for('main.download_assignments_view') }}" class="btn btn-primary mb-3">הורד קובץ אקסל</a>
+
 <table class="table table-bordered" dir="rtl">
     <thead class="thead-light">
         <tr>
@@ -33,4 +44,13 @@
         {% endfor %}
     </tbody>
 </table>
+
+<script>
+function toggleSemester() {
+    const toggle = document.getElementById('semester_toggle');
+    const semester = toggle.checked ? 'א' : 'ב';
+    window.location.href = `{{ url_for('main.assignments_view') }}?semester=${semester}`;
+}
+</script>
+
 {% endblock %}
