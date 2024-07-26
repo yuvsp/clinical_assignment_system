@@ -38,9 +38,9 @@
             {% endfor %}
             {% for instructor, day, reason in irrelevant_instructors %}
             <tr class="{% if reason == 'תחום לא מועדף של הסטודנטית' %}table-warning{% else %}table-danger{% endif %}">
-                <td class="text-right" style="text-decoration: line-through;">{{ instructor.name }}</td>
-                <td class="text-right" style="text-decoration: line-through;">{{ instructor.area_of_expertise.name }} [{{ instructor.practice_location }}]</td>
-                <td class="text-right" style="text-decoration: line-through;">{{ day }}</td>
+                <td class="text-right">{{ instructor.name }}</td>
+                <td class="text-right">{{ instructor.area_of_expertise.name }} [{{ instructor.practice_location }}]</td>
+                <td class="text-right">{{ day }}</td>
                 <td class="text-right">{{ reason }}</td>
                 <td>
                     {% if reason == 'תחום לא מועדף של הסטודנטית' and assignment_count < 3 %}

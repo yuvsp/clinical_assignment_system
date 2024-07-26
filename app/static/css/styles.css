@@ -108,8 +108,21 @@ button:hover, .btn:hover {
     background-color: #e63946 !important;
 }
 
+
+.btn-cancel {
+    background-color:  #dfddc8 !important;
+    color:  #000000 !important;
+    border: none !important;
+}
+
+.btn-cancel:hover {
+    background-color: #d4d2b5 !important;
+    color:  #000000 !important;
+
+}
+
 /* Ensure buttons with the same minimum width */
-.btn-primary, .btn-danger {
+.btn-primary, .btn-danger, .btn-cancel {
     min-width: 120px; /* Adjust the width based on the longer text button */
 }
 
@@ -187,6 +200,10 @@ button, .btn {
 /* Background Color Styles */
 .green-background {
     background-color: var(--light-green);
+}
+
+.yellow-background {
+    background-color: var(--secondary-color);
 }
 
 .red-background {
@@ -340,4 +357,14 @@ form {
     font-size: 1.2rem;
     vertical-align: middle;
   }
+  
+.header-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.toggle-container {
+    display: flex;
+    align-items: center;
+}
   

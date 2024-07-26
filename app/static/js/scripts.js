@@ -12,8 +12,9 @@ function fetchInstructors(studentId, tooltipElement) {
             tooltipElement.innerHTML += '<strong>לא רלוונטי:</strong>';
             data.irrelevant_instructors.forEach(instructor => {
                 let p = document.createElement('p');
-                p.style.textDecoration = 'line-through';
+                
                 if (instructor.reason === "הקלינאית תפוסה ביום זה") {
+                    p.style.textDecoration = 'line-through';
                     p.classList.add('red-background');
                 }
                 if (instructor.reason === "תחום לא מועדף של הסטודנטית") {

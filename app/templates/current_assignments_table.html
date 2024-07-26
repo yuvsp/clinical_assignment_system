@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h1 class="mb-4 text-right">שיבוצים נוכחיים</h1>
+<h1 class="mb-4 text-right">שיבוץ</h1>
 
 <div class="mb-3 text-center">
     <label class="semester-label">סמסטר א</label>
@@ -45,12 +45,12 @@
                     {% set reason = student_data.assignments[i].instructor.area_of_expertise.name not in student_data.preferred_fields and 'table-warning' %}
                     <td class="text-center {{ reason }}">
                         <form method="post" action="{{ url_for('main.remove_assignment', assignment_id=student_data.assignments[i].id) }}" class="d-inline">
-                            <button type="submit" class="btn btn-danger">ביטול שיבוץ</button>
+                            <button type="submit" class="btn btn-cancel">ביטול שיבוץ</button>
                         </form>
                         <div style="margin-top: 5px;">
-                            יום {{ student_data.assignments[i].assigned_day }} ב{{ student_data.assignments[i].instructor.practice_location }}<br>
-                            {{ student_data.assignments[i].instructor.name }}<br>
                             {{ student_data.assignments[i].instructor.area_of_expertise.name }}
+                            {{ student_data.assignments[i].instructor.name }}<br>
+                            יום {{ student_data.assignments[i].assigned_day }} ב{{ student_data.assignments[i].instructor.practice_location }}<br>
                         </div>
                     </td>
                 {% else %}
