@@ -39,7 +39,7 @@ def allowed_file(filename):
 
 @bp.route('/')
 def main_view():
-    return redirect(url_for('main.current_assignments'))  # Redirect home to current assignments
+    return redirect(url_for('main.current_assignments_table'))  # Redirect home to current assignments
 
 @bp.route('/current_assignments')
 def current_assignments():
@@ -519,7 +519,7 @@ def remove_assignment(assignment_id):
     assignment = Assignment.query.get_or_404(assignment_id)
     db.session.delete(assignment)
     db.session.commit()
-    return redirect(url_for('main.current_assignments'))
+    return redirect(url_for('main.current_assignments_table'))
 
 @bp.route('/assignments_view')
 def assignments_view():
@@ -710,22 +710,22 @@ def export_backup_excel():
 def import_backup_excel():
     if 'file' not in request.files:
         flash('No file part')
-        return redirect(url_for('main.current_assignments'))
+        return redirect(url_for('main.current_assignments_table'))
     
     file = request.files['file']
     if file.filename == '':
         flash('No selected file')
-        return redirect(url_for('main.current_assignments'))
+        return redirect(url_for('main.current_assignments_table'))
     
     if file and allowed_file(file.filename):
         filename = secure_filename(file.filename)
         filepath = os.path.join('uploads', filename)
         file.save(filepath)
         process_backup_file(filepath)
-        return redirect(url_for('main.current_assignments'))
+        return redirect(url_for('main.current_assignments_table'))
 
     flash('Invalid file format')
-    return redirect(url_for('main.current_assignments'))
+    return redirect(url_for('main.current_assignments_table'))
 
 def process_backup_file(filepath):
     df = pd.read_excel(filepath)
