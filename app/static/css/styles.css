@@ -108,8 +108,21 @@ button:hover, .btn:hover {
     background-color: #e63946 !important;
 }
 
+
+.btn-cancel {
+    background-color:  #dfddc8 !important;
+    color:  #000000 !important;
+    border: none !important;
+}
+
+.btn-cancel:hover {
+    background-color: #d4d2b5 !important;
+    color:  #000000 !important;
+
+}
+
 /* Ensure buttons with the same minimum width */
-.btn-primary, .btn-danger {
+.btn-primary, .btn-danger, .btn-cancel {
     min-width: 120px; /* Adjust the width based on the longer text button */
 }
 
@@ -187,6 +200,10 @@ button, .btn {
 /* Background Color Styles */
 .green-background {
     background-color: var(--light-green);
+}
+
+.yellow-background {
+    background-color: var(--secondary-color);
 }
 
 .red-background {
@@ -279,3 +296,75 @@ form {
     overflow: hidden;
     text-overflow: ellipsis;
 }
+
+/* Toggle Switch */
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 60px;
+    height: 34px;
+    margin: 0 10px;
+  }
+  
+  .switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+  
+  .slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #368b39;
+    transition: .4s;
+    border-radius: 34px;
+  }
+  
+  .slider:before {
+    position: absolute;
+    content: "";
+    height: 26px;
+    width: 26px;
+    left: 4px;
+    bottom: 4px;
+    background-color: rgb(255, 255, 255);
+    transition: .4s;
+    border-radius: 50%;
+  }
+  
+  input:checked + .slider {
+    background-color: #4CAF50;
+  }
+  
+  input:checked + .slider:before {
+    transform: translateX(26px);
+  }
+  
+  .slider.round {
+    border-radius: 34px;
+  }
+  
+  .slider.round:before {
+    border-radius: 50%;
+  }
+  
+  .semester-label {
+    display: inline-block;
+    font-size: 1.2rem;
+    vertical-align: middle;
+  }
+  
+.header-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.toggle-container {
+    display: flex;
+    align-items: center;
+}
+  

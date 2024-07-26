@@ -2,11 +2,23 @@
 
 {% block content %}
 <h1 class="mb-4 text-right">שיבוצים נוכחיים</h1>
-<a href="{{ url_for('main.export_backup_excel') }}" class="btn btn-secondary mb-3">ייצא גיבוי אקסל</a>
-<form action="{{ url_for('main.import_backup_excel') }}" method="post" enctype="multipart/form-data" class="mb-3">
-    <input type="file" name="file" class="form-control-file mb-2" required>
-    <button type="submit" class="btn btn-warning">ייבא גיבוי אקסל</button>
-</form>
+
+<div class="mb-3 text-center">
+    <label class="semester-label">סמסטר א</label>
+    <label class="switch">
+        <input type="checkbox" id="semester_toggle" onclick="toggleSemester()" {{ 'checked' if semester == 'א' else '' }}>
+        <span class="slider round"></span>
+    </label>
+    <label class="semester-label">סמסטר ב</label>
+</div>
+
+<div class="mb-3 text-center">
+    <form action="{{ url_for('main.import_backup_excel') }}" method="post" enctype="multipart/form-data" class="d-inline">
+        <input type="file" name="file" class="form-control-file d-inline-block mb-2" required>
+        <button type="submit" class="btn btn-warning">ייבא גיבוי אקסל</button>
+    </form>
+    <a href="{{ url_for('main.export_backup_excel') }}" class="btn btn-secondary">ייצא גיבוי אקסל</a>
+</div>
 
 {% for student_id, student_data in student_assignments.items() %}
 <table class="table table-bordered mb-4 current-assignments-table" dir="rtl">
@@ -51,5 +63,13 @@
     </tbody>
 </table>
 {% endfor %}
+
+<script>
+function toggleSemester() {
+    const toggle = document.getElementById('semester_toggle');
+    const semester = toggle.checked ? 'א' : 'ב';
+    window.location.href = `{{ url_for('main.current_assignments') }}?semester=${semester}`;
+}
+</script>
 
 {% endblock %}
