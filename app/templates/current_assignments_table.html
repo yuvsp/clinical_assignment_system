@@ -3,14 +3,14 @@
 {% block content %}
 <h1 class="mb-4 text-right">שיבוץ</h1>
 
-<div class="mb-3 text-center">
+<!-- <div class="mb-3 text-center">
     <label class="semester-label">סמסטר א</label>
     <label class="switch">
         <input type="checkbox" id="semester_toggle" onclick="toggleSemester()" {{ 'checked' if semester == 'א' else '' }}>
         <span class="slider round"></span>
     </label>
     <label class="semester-label">סמסטר ב</label>
-</div>
+</div> -->
 
 <div class="mb-3 text-center">
     <form action="{{ url_for('main.import_backup_excel') }}" method="post" enctype="multipart/form-data" class="d-inline">
@@ -30,45 +30,86 @@
         </tr>
     </thead>
     <tbody>
-        {% for student_id, student_data in student_assignments.items() %}
+        {% for student_data in student_assignments %}
         <tr>
             <td class="text-right">
-                {{ student_data.name }}<br>
-                <small>
-                    1. {{ student_data.preferred_fields[0] }}<br>
-                    2. {{ student_data.preferred_fields[1] }}<br>
-                    3. {{ student_data.preferred_fields[2] }}
-                </small>
+                <div style="position: relative; padding-left: 40px;">
+                    <div style="position: absolute; top: 0; left: 0; display: flex; gap: 5px;">
+                        <button class="btn btn-icon" onclick="printToPDF('{{ student_data.id }}')" title="ייצוא PDF">
+                            <i class="fas fa-print"></i>
+                        </button>
+                        <button class="btn btn-icon" onclick="emailToStudent('{{ student_data.id }}', '{{ student_data.email }}', '{{ student_data.name }}')" title="שלח אל {{ student_data.email }}">
+                            <i class="fas fa-envelope"></i>
+                        </button>                        
+                    </div>
+                    {{ student_data.name }}<br>
+                    <small style="font-size: 85%;">{{ student_data.email }}</small><br>
+                    <small>
+                        1. {{ student_data.preferred_fields[0] }}<br>
+                        2. {{ student_data.preferred_fields[1] }}<br>
+                        3. {{ student_data.preferred_fields[2] }}
+                    </small>
+                </div>
             </td>
-            {% for i in range(3) %}
-                {% if student_data.assignments[i] %}
-                    {% set reason = student_data.assignments[i].instructor.area_of_expertise.name not in student_data.preferred_fields and 'table-warning' %}
-                    <td class="text-center {{ reason }}">
-                        <form method="post" action="{{ url_for('main.remove_assignment', assignment_id=student_data.assignments[i].id) }}" class="d-inline">
-                            <button type="submit" class="btn btn-cancel">ביטול שיבוץ</button>
-                        </form>
-                        <div style="margin-top: 5px;">
-                            {{ student_data.assignments[i].instructor.area_of_expertise.name }}
-                            {{ student_data.assignments[i].instructor.name }}<br>
-                            יום {{ student_data.assignments[i].assigned_day }} ב{{ student_data.assignments[i].instructor.practice_location }}<br>
-                        </div>
-                    </td>
-                {% else %}
-                    <td class="text-center">
-                        <div class="student-container">
-                            <div class="student" onmouseover="fetchInstructors('{{ student_id }}', this.querySelector('.instructors-tooltip'))" data-student-id="{{ student_id }}">
-                                <a href="{{ url_for('main.assign_instructor', student_id=student_id) }}" class="btn btn-primary">שיבוץ</a>
-                                <div class="instructors-tooltip">טוען...</div>
+            {% if student_data.allocation == 'אודיו ושיקום' %}
+                <td class="text-center" colspan="3">אודיו ושיקום</td>
+            {% else %}
+                {% for i in range(3) %}
+                    {% if student_data.assignments[i] %}
+                        {% set assignment = student_data.assignments[i] %}
+                        {% set instructor = assignment.instructor %}
+                        {% set reason = instructor and instructor.area_of_expertise and instructor.area_of_expertise.name not in student_data.preferred_fields and 'table-warning' %}
+                        <td class="text-center {{ reason }}">
+                            <form method="post" action="{{ url_for('main.remove_assignment', assignment_id=assignment.id) }}" class="d-inline">
+                                <button type="submit" class="btn btn-cancel">ביטול שיבוץ</button>
+                            </form>
+                            <div style="margin-top: 5px;">
+                                {{ instructor.area_of_expertise.name if instructor else '' }}
+                                {{ instructor.name if instructor else '' }}<br>
+                                יום {{ assignment.assigned_day }} ב{{ instructor.practice_location if instructor else '' }}<br>
                             </div>
-                        </div>
-                        <div style="margin-top: 5px;">לא שובץ עדיין</div>
-                    </td>
-                {% endif %}
-            {% endfor %}
+                        </td>
+                    {% else %}
+                        <td class="text-center">
+                            <div class="student-container">
+                                <div class="student" onmouseover="fetchInstructors('{{ student_data.id }}', this.querySelector('.instructors-tooltip'))" data-student-id="{{ student_data.id }}">
+                                    <a href="{{ url_for('main.assign_instructor', student_id=student_data.id) }}" class="btn btn-primary">שיבוץ</a>
+                                    <div class="instructors-tooltip">טוען...</div>
+                                </div>
+                            </div>
+                            <div style="margin-top: 5px;">לא שובץ עדיין</div>
+                        </td>
+                    {% endif %}
+                {% endfor %}
+            {% endif %}
         </tr>
         {% endfor %}
     </tbody>
 </table>
+
+<style>
+.btn-icon {
+    width: 24px !important;
+    height: 24px !important;
+    padding: 0 !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    background-color: white !important;
+    border: 1px solid #ccc !important;
+    border-radius: 4px !important;
+}
+
+.btn-icon i {
+    font-size: 14px !important;
+    color: #555 !important;
+}
+
+.btn-icon:hover {
+    background-color: rgba(0, 0, 0, 0.1) !important;
+    border-color: #aaa !important;
+}
+</style>
 
 <script>
 function toggleSemester() {
@@ -76,6 +117,31 @@ function toggleSemester() {
     const semester = toggle.checked ? 'א' : 'ב';
     window.location.href = `{{ url_for('main.current_assignments_table') }}?semester=${semester}`;
 }
+
+function printToPDF(studentId) {
+    window.location.href = `/download_pdf/${studentId}`;
+}
+
+function emailToStudent(studentId, studentEmail, studentName) {
+    fetch(`/download_pdf/${studentId}`)
+        .then(response => response.blob())
+        .then(blob => {
+            // Create a URL for the blob
+            const pdfUrl = URL.createObjectURL(blob);
+
+            // Prepare the subject with the student's name
+            const subject = encodeURIComponent(`שיבוצים - ${studentName}`);
+
+            // Plain text body with line breaks
+            const body = encodeURIComponent(`היי,\n\nמצורפים השיבוצים עבור שפה ודיבור.\n\nתודה, והמון בהצלחה,\nרון דאר`);
+
+            const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${studentEmail}&su=${subject}&body=${body}`;
+
+            // Open Gmail in a new window/tab
+            window.open(gmailUrl, '_blank');
+        });
+}
+
 </script>
 
 {% endblock %}

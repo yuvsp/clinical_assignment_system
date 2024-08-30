@@ -16,21 +16,24 @@
             <th class="text-right">שם</th>
             <th class="text-right">תחומים מועדפים</th>
             <th class="text-right">אזור תרגול מועדף</th>
-            <th class="text-right">סמסטר</th>  <!-- Add semester column header -->
+            <th class="text-right">סמסטר שפה</th>  <!-- Add semester column header -->
             <th>פעולה</th>
         </tr>
     </thead>
     <tbody>
         {% for student in students %}
         <tr>
-            <td class="text-right">{{ student.name }}</td>
+            <td class="text-right">
+                {{ student.name }}<br>
+                <small style="font-size: 12px; color: #666;">{{ student.email }}</small>
+            </td>            
             <td class="text-right">
                 {{ student.preferred_field_1.name if student.preferred_field_1 else '' }},
                 {{ student.preferred_field_2.name if student.preferred_field_2 else '' }},
                 {{ student.preferred_field_3.name if student.preferred_field_3 else '' }}
             </td>
             <td class="text-right">{{ student.preferred_practice_area }}</td>
-            <td class="text-right">{{ student.semester }}</td>  <!-- Add semester data -->
+            <td class="text-right">{{ student.semester }}</td>
             <td class="text-center">
                 <a href="{{ url_for('main.assign_instructor', student_id=student.id) }}" class="btn btn-success">שיבוץ</a>
             </td>

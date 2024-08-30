@@ -2,6 +2,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, send_f
 from werkzeug.utils import secure_filename
 from app import db
 from app.models import ClinicalInstructor, Student, Assignment, Field
+from app.pdf_utils import generate_student_pdf
 import pandas as pd
 import io
 import os
@@ -156,6 +157,10 @@ def add_student():
 @bp.route('/assign/<int:student_id>', methods=['GET', 'POST'])
 def assign_instructor(student_id):
     student = Student.query.get(student_id)
+
+    # Determine allocation based on semester
+    allocation = 'שפה' if student.semester == 'א' else 'אודיו ושיקום'
+
     if request.method == 'POST':
         if 'cancel_assignment_id' in request.form:
             assignment_id = request.form['cancel_assignment_id']
@@ -166,7 +171,7 @@ def assign_instructor(student_id):
                 db.session.commit()
 
                 # Restore availability if all assignments are canceled
-                if instructor.single_assignment:
+                if instructor and instructor.single_assignment:
                     remaining_assignments = Assignment.query.filter_by(instructor_id=instructor.id).count()
                     if remaining_assignments == 0:
                         original_days = [day.replace('-לא-זמין', '') for day in instructor.available_days_to_assign.split(',')]
@@ -179,21 +184,34 @@ def assign_instructor(student_id):
         instructor_id = request.form['instructor_id']
         assigned_day = request.form['assigned_day']
 
-        # Check if the student already has an assignment on the selected day
-        existing_assignment = Assignment.query.filter_by(student_id=student.id, assigned_day=assigned_day).first()
-        if existing_assignment:
-            return redirect(url_for('main.assign_instructor', student_id=student_id))  # Redirect if already assigned
+        if allocation == 'אודיו ושיקום':
+            # Remove all existing "שפה" assignments for this student
+            Assignment.query.filter_by(student_id=student_id).delete()
 
-        assignment = Assignment(student_id=student.id, instructor_id=instructor_id, assigned_day=assigned_day)
-        db.session.add(assignment)
+            # Add the "אודיו ושיקום" assignment if it doesn't already exist
+            existing_assignment = Assignment.query.filter_by(student_id=student_id, instructor_id=501, assigned_day='ראשון').first()
+            if not existing_assignment:
+                assignment = Assignment(
+                    student_id=student.id,
+                    instructor_id=501,  # Assuming instructor_id 501 is for "אודיו ושיקום"
+                    assigned_day='ראשון'  # Assigning to Sunday
+                )
+                db.session.add(assignment)
+        elif allocation == 'שפה':
+            # Remove any existing "אודיו ושיקום" assignments for this student
+            Assignment.query.filter_by(student_id=student_id, instructor_id=501, assigned_day='ראשון').delete()
 
-        instructor = ClinicalInstructor.query.get(instructor_id)
-        if instructor.single_assignment:
-            # Mark other days as unavailable without removing them
-            available_days = instructor.available_days_to_assign.split(',')
-            available_days_with_suffix = [day if day == assigned_day else day + '-לא-זמין' for day in available_days]
-            instructor.available_days_to_assign = ','.join(available_days_with_suffix)
-            db.session.add(instructor)
+            # Add the new "שפה" assignment
+            assignment = Assignment(student_id=student.id, instructor_id=instructor_id, assigned_day=assigned_day)
+            db.session.add(assignment)
+
+            instructor = ClinicalInstructor.query.get(instructor_id)
+            if instructor and instructor.single_assignment:
+                # Mark other days as unavailable without removing them
+                available_days = instructor.available_days_to_assign.split(',')
+                available_days_with_suffix = [day if day == assigned_day else day + '-לא-זמין' for day in available_days]
+                instructor.available_days_to_assign = ','.join(available_days_with_suffix)
+                db.session.add(instructor)
 
         db.session.commit()
         return redirect(url_for('main.assign_instructor', student_id=student_id))
@@ -337,6 +355,7 @@ def download_students():
     for student in students:
         row = {
             'Name': student.name,
+            'Email': student.email,  # Include email in the export
             'Preferred Field 1': student.preferred_field_1.name if student.preferred_field_1 else '',
             'Preferred Field 2': student.preferred_field_2.name if student.preferred_field_2 else '',
             'Preferred Field 3': student.preferred_field_3.name if student.preferred_field_3 else '',
@@ -426,10 +445,13 @@ def process_student_file(filepath):
         df = pd.read_excel(filepath)
         
         # Check for required columns
-        required_columns = ['Name', 'Preferred Field 1', 'Preferred Field 2', 'Preferred Field 3', 'Preferred Practice Area', 'Semester']
+        required_columns = ['Name', 'Email', 'Preferred Field 1', 'Preferred Field 2', 'Preferred Field 3', 'Preferred Practice Area', 'Semester']
         for col in required_columns:
             if col not in df.columns:
                 raise ValueError(f"Missing column: {col}")
+        
+        # Ensure email defaults to "add_email@gmail.com" if missing
+        df['Email'].fillna("add_email@gmail.com", inplace=True)
         
         # Clear existing records
         Student.query.delete()
@@ -439,6 +461,7 @@ def process_student_file(filepath):
         for _, row in df.iterrows():
             new_student = Student(
                 name=row['Name'],
+                email=row['Email'],  # Add email handling
                 preferred_field_1=Field.query.filter_by(name=row['Preferred Field 1']).first(),
                 preferred_field_2=Field.query.filter_by(name=row['Preferred Field 2']).first(),
                 preferred_field_3=Field.query.filter_by(name=row['Preferred Field 3']).first(),
@@ -537,14 +560,20 @@ def assignments_view():
         student_name = assignment.student.name
         if student_name in assignments_data:  # Ensure the student is in the filtered students list
             day = assignment.assigned_day
-            instructor_name = assignment.instructor.name
-            practice_location = assignment.instructor.practice_location
-            area_of_expertise = assignment.instructor.area_of_expertise.name
-            color_class = f"color-{instructor_name.replace(' ', '-').replace('.', '').lower()}"
-            assignments_data[student_name][day] = {
-                'text': f"{instructor_name} - {practice_location} - {area_of_expertise}",
-                'color_class': color_class
-            }
+            if assignment.instructor:
+                instructor_name = assignment.instructor.name
+                practice_location = assignment.instructor.practice_location
+                area_of_expertise = assignment.instructor.area_of_expertise.name
+                color_class = f"color-{instructor_name.replace(' ', '-').replace('.', '').lower()}"
+                assignments_data[student_name][day] = {
+                    'text': f"{instructor_name} - {practice_location} - {area_of_expertise}",
+                    'color_class': color_class
+                }
+            else:
+                assignments_data[student_name][day] = {
+                    'text': 'N/A',
+                    'color_class': 'color-none'
+                }
 
     student_assignments_count = {student.name: 0 for student in students}
     for assignment in assignments:
@@ -789,29 +818,58 @@ def editable_instructors():
 
 @bp.route('/current_assignments_table')
 def current_assignments_table():
-    semester = request.args.get('semester', 'א')  # Default to semester 'א'
-    students = Student.query.filter_by(semester=semester).all()
+    semester = request.args.get('semester', 'א')
+    students = Student.query.all()  # Get all students
     assignments = Assignment.query.all()
+
     student_assignments = {}
 
     for student in students:
+        # Determine allocation based on the student's semester
+        allocation = 'שפה' if student.semester == 'א' else 'אודיו ושיקום'
+        
         student_assignments[student.id] = {
+            'id': student.id,  # Include student_id
             'name': student.name,
+            'email': student.email,  # Include the student's email
             'preferred_fields': [
                 student.preferred_field_1.name if student.preferred_field_1 else '',
                 student.preferred_field_2.name if student.preferred_field_2 else '',
                 student.preferred_field_3.name if student.preferred_field_3 else ''
             ],
-            'assignments': [None, None, None]  # Placeholder for three assignments
+            'allocation': allocation,
+            'assignments': [None, None, None] if allocation == 'שפה' else []
         }
 
     for assignment in assignments:
         student_id = assignment.student_id
         student_data = student_assignments.get(student_id)
-        if student_data:
-            for i, preferred_field in enumerate(student_data['preferred_fields']):
-                if len(student_data['assignments']) > i and student_data['assignments'][i] is None:
+        if student_data and student_data['allocation'] == 'שפה':
+            for i, _ in enumerate(student_data['assignments']):
+                if student_data['assignments'][i] is None:
                     student_data['assignments'][i] = assignment
                     break
 
-    return render_template('current_assignments_table.html', student_assignments=student_assignments, semester=semester)
+    # Convert dictionary to a list and sort it
+    sorted_students = sorted(student_assignments.values(), key=lambda x: (
+        x['allocation'] != 'שפה',
+        x['allocation'] != 'אודיו ושיקום'
+    ))
+
+    return render_template('current_assignments_table.html', student_assignments=sorted_students, semester=semester)
+
+def determine_allocation(student):
+    if student.semester == 'א':
+        return 'שפה'
+    elif student.semester == 'ב':
+        return 'אודיו ושיקום'
+    else:
+        return None  # Handle unexpected cases if necessary
+
+@bp.route('/download_pdf/<int:student_id>', methods=['GET'])
+def download_pdf(student_id):
+    student = Student.query.get_or_404(student_id)
+    pdf = generate_student_pdf(student)
+    return send_file(pdf, download_name=f"שיבוצים שפה ודי   בור {student.name}.pdf", as_attachment=True)
+
+
