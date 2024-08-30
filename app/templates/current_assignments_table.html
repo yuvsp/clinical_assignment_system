@@ -3,14 +3,14 @@
 {% block content %}
 <h1 class="mb-4 text-right">שיבוץ</h1>
 
-<div class="mb-3 text-center">
+<!-- <div class="mb-3 text-center">
     <label class="semester-label">סמסטר א</label>
     <label class="switch">
         <input type="checkbox" id="semester_toggle" onclick="toggleSemester()" {{ 'checked' if semester == 'א' else '' }}>
         <span class="slider round"></span>
     </label>
     <label class="semester-label">סמסטר ב</label>
-</div>
+</div> -->
 
 <div class="mb-3 text-center">
     <form action="{{ url_for('main.import_backup_excel') }}" method="post" enctype="multipart/form-data" class="d-inline">
@@ -24,7 +24,6 @@
     <thead class="thead-light">
         <tr>
             <th class="text-right">שם הסטודנט</th>
-            <th class="text-right">הקצאה</th>
             <th class="text-right">שיבוץ 1</th>
             <th class="text-right">שיבוץ 2</th>
             <th class="text-right">שיבוץ 3</th>
@@ -34,18 +33,23 @@
         {% for student_data in student_assignments %}
         <tr>
             <td class="text-right">
-                {{ student_data.name }}<br>
-                <small>
-                    1. {{ student_data.preferred_fields[0] }}<br>
-                    2. {{ student_data.preferred_fields[1] }}<br>
-                    3. {{ student_data.preferred_fields[2] }}
-                </small>
-            </td>
-            <td class="text-right">
-                <select class="form-control allocation-select" data-student-id="{{ student_data.id }}">
-                    <option value="שפה" {{ 'selected' if student_data.allocation == 'שפה' else '' }}>שפה</option>
-                    <option value="אודיו ושיקום" {{ 'selected' if student_data.allocation == 'אודיו ושיקום' else '' }}>אודיו ושיקום</option>
-                </select>
+                <div style="position: relative; padding-left: 40px;">
+                    <div style="position: absolute; top: 0; left: 0; display: flex; gap: 5px;">
+                        <button class="btn btn-icon" onclick="printToPDF('{{ student_data.id }}')" title="ייצוא PDF">
+                            <i class="fas fa-print"></i>
+                        </button>
+                        <button class="btn btn-icon" onclick="emailToStudent('{{ student_data.id }}', '{{ student_data.email }}', '{{ student_data.name }}')" title="שלח אל {{ student_data.email }}">
+                            <i class="fas fa-envelope"></i>
+                        </button>                        
+                    </div>
+                    {{ student_data.name }}<br>
+                    <small style="font-size: 85%;">{{ student_data.email }}</small><br>
+                    <small>
+                        1. {{ student_data.preferred_fields[0] }}<br>
+                        2. {{ student_data.preferred_fields[1] }}<br>
+                        3. {{ student_data.preferred_fields[2] }}
+                    </small>
+                </div>
             </td>
             {% if student_data.allocation == 'אודיו ושיקום' %}
                 <td class="text-center" colspan="3">אודיו ושיקום</td>
@@ -83,6 +87,30 @@
     </tbody>
 </table>
 
+<style>
+.btn-icon {
+    width: 24px !important;
+    height: 24px !important;
+    padding: 0 !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    background-color: white !important;
+    border: 1px solid #ccc !important;
+    border-radius: 4px !important;
+}
+
+.btn-icon i {
+    font-size: 14px !important;
+    color: #555 !important;
+}
+
+.btn-icon:hover {
+    background-color: rgba(0, 0, 0, 0.1) !important;
+    border-color: #aaa !important;
+}
+</style>
+
 <script>
 function toggleSemester() {
     const toggle = document.getElementById('semester_toggle');
@@ -90,30 +118,30 @@ function toggleSemester() {
     window.location.href = `{{ url_for('main.current_assignments_table') }}?semester=${semester}`;
 }
 
-document.addEventListener('DOMContentLoaded', function() {
-    document.querySelectorAll('.allocation-select').forEach(function(selectElement) {
-        selectElement.addEventListener('change', function() {
-            const studentId = this.getAttribute('data-student-id');
-            const allocation = this.value;
-            fetch(`/update_allocation/${studentId}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ allocation: allocation })
-            }).then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    location.reload();
-                } else {
-                    alert('Failed to update allocation');
-                }
-            }).catch(error => {
-                console.error('Error updating allocation:', error);
-            });
+function printToPDF(studentId) {
+    window.location.href = `/download_pdf/${studentId}`;
+}
+
+function emailToStudent(studentId, studentEmail, studentName) {
+    fetch(`/download_pdf/${studentId}`)
+        .then(response => response.blob())
+        .then(blob => {
+            // Create a URL for the blob
+            const pdfUrl = URL.createObjectURL(blob);
+
+            // Prepare the subject with the student's name
+            const subject = encodeURIComponent(`שיבוצים - ${studentName}`);
+
+            // Plain text body with line breaks
+            const body = encodeURIComponent(`היי,\n\nמצורפים השיבוצים עבור שפה ודיבור.\n\nתודה, והמון בהצלחה,\nרון דאר`);
+
+            const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${studentEmail}&su=${subject}&body=${body}`;
+
+            // Open Gmail in a new window/tab
+            window.open(gmailUrl, '_blank');
         });
-    });
-});
+}
+
 </script>
 
 {% endblock %}

@@ -2,6 +2,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, send_f
 from werkzeug.utils import secure_filename
 from app import db
 from app.models import ClinicalInstructor, Student, Assignment, Field
+from app.pdf_utils import generate_student_pdf
 import pandas as pd
 import io
 import os
@@ -156,6 +157,10 @@ def add_student():
 @bp.route('/assign/<int:student_id>', methods=['GET', 'POST'])
 def assign_instructor(student_id):
     student = Student.query.get(student_id)
+
+    # Determine allocation based on semester
+    allocation = 'שפה' if student.semester == 'א' else 'אודיו ושיקום'
+
     if request.method == 'POST':
         if 'cancel_assignment_id' in request.form:
             assignment_id = request.form['cancel_assignment_id']
@@ -178,28 +183,26 @@ def assign_instructor(student_id):
 
         instructor_id = request.form['instructor_id']
         assigned_day = request.form['assigned_day']
-        allocation = request.form.get('allocation', 'שפה')
 
         if allocation == 'אודיו ושיקום':
-            # Remove all existing "שפה" assignments
-            Assignment.query.filter_by(student_id=student_id, allocation='שפה').delete()
+            # Remove all existing "שפה" assignments for this student
+            Assignment.query.filter_by(student_id=student_id).delete()
 
             # Add the "אודיו ושיקום" assignment if it doesn't already exist
-            existing_assignment = Assignment.query.filter_by(student_id=student_id, allocation='אודיו ושיקום').first()
+            existing_assignment = Assignment.query.filter_by(student_id=student_id, instructor_id=501, assigned_day='ראשון').first()
             if not existing_assignment:
                 assignment = Assignment(
                     student_id=student.id,
-                    instructor_id=501,  # Set the instructor_id to 501 for "אודיו ושיקום"
-                    assigned_day='ראשון',  # Set the assigned day to "ראשון"
-                    allocation='אודיו ושיקום'
+                    instructor_id=501,  # Assuming instructor_id 501 is for "אודיו ושיקום"
+                    assigned_day='ראשון'  # Assigning to Sunday
                 )
                 db.session.add(assignment)
         elif allocation == 'שפה':
-            # Remove any existing "אודיו ושיקום" assignments
-            Assignment.query.filter_by(student_id=student_id, allocation='אודיו ושיקום').delete()
+            # Remove any existing "אודיו ושיקום" assignments for this student
+            Assignment.query.filter_by(student_id=student_id, instructor_id=501, assigned_day='ראשון').delete()
 
             # Add the new "שפה" assignment
-            assignment = Assignment(student_id=student.id, instructor_id=instructor_id, assigned_day=assigned_day, allocation=allocation)
+            assignment = Assignment(student_id=student.id, instructor_id=instructor_id, assigned_day=assigned_day)
             db.session.add(assignment)
 
             instructor = ClinicalInstructor.query.get(instructor_id)
@@ -352,6 +355,7 @@ def download_students():
     for student in students:
         row = {
             'Name': student.name,
+            'Email': student.email,  # Include email in the export
             'Preferred Field 1': student.preferred_field_1.name if student.preferred_field_1 else '',
             'Preferred Field 2': student.preferred_field_2.name if student.preferred_field_2 else '',
             'Preferred Field 3': student.preferred_field_3.name if student.preferred_field_3 else '',
@@ -441,10 +445,13 @@ def process_student_file(filepath):
         df = pd.read_excel(filepath)
         
         # Check for required columns
-        required_columns = ['Name', 'Preferred Field 1', 'Preferred Field 2', 'Preferred Field 3', 'Preferred Practice Area', 'Semester']
+        required_columns = ['Name', 'Email', 'Preferred Field 1', 'Preferred Field 2', 'Preferred Field 3', 'Preferred Practice Area', 'Semester']
         for col in required_columns:
             if col not in df.columns:
                 raise ValueError(f"Missing column: {col}")
+        
+        # Ensure email defaults to "add_email@gmail.com" if missing
+        df['Email'].fillna("add_email@gmail.com", inplace=True)
         
         # Clear existing records
         Student.query.delete()
@@ -454,6 +461,7 @@ def process_student_file(filepath):
         for _, row in df.iterrows():
             new_student = Student(
                 name=row['Name'],
+                email=row['Email'],  # Add email handling
                 preferred_field_1=Field.query.filter_by(name=row['Preferred Field 1']).first(),
                 preferred_field_2=Field.query.filter_by(name=row['Preferred Field 2']).first(),
                 preferred_field_3=Field.query.filter_by(name=row['Preferred Field 3']).first(),
@@ -817,25 +825,26 @@ def current_assignments_table():
     student_assignments = {}
 
     for student in students:
+        # Determine allocation based on the student's semester
+        allocation = 'שפה' if student.semester == 'א' else 'אודיו ושיקום'
+        
         student_assignments[student.id] = {
             'id': student.id,  # Include student_id
             'name': student.name,
+            'email': student.email,  # Include the student's email
             'preferred_fields': [
                 student.preferred_field_1.name if student.preferred_field_1 else '',
                 student.preferred_field_2.name if student.preferred_field_2 else '',
                 student.preferred_field_3.name if student.preferred_field_3 else ''
             ],
-            'allocation': 'שפה',  # Default to שפה
-            'assignments': [None, None, None]
+            'allocation': allocation,
+            'assignments': [None, None, None] if allocation == 'שפה' else []
         }
 
     for assignment in assignments:
         student_id = assignment.student_id
         student_data = student_assignments.get(student_id)
-        if student_data:
-            if assignment.allocation:
-                student_data['allocation'] = assignment.allocation
-
+        if student_data and student_data['allocation'] == 'שפה':
             for i, _ in enumerate(student_data['assignments']):
                 if student_data['assignments'][i] is None:
                     student_data['assignments'][i] = assignment
@@ -849,35 +858,18 @@ def current_assignments_table():
 
     return render_template('current_assignments_table.html', student_assignments=sorted_students, semester=semester)
 
-@bp.route('/update_allocation/<int:student_id>', methods=['POST'])
-def update_allocation(student_id):
-    data = request.get_json()
-    allocation = data.get('allocation')
+def determine_allocation(student):
+    if student.semester == 'א':
+        return 'שפה'
+    elif student.semester == 'ב':
+        return 'אודיו ושיקום'
+    else:
+        return None  # Handle unexpected cases if necessary
 
-    if allocation not in ['שפה', 'אודיו ושיקום']:
-        return jsonify({'success': False, 'error': 'Invalid allocation value'}), 400
+@bp.route('/download_pdf/<int:student_id>', methods=['GET'])
+def download_pdf(student_id):
+    student = Student.query.get_or_404(student_id)
+    pdf = generate_student_pdf(student)
+    return send_file(pdf, download_name=f"שיבוצים שפה ודי   בור {student.name}.pdf", as_attachment=True)
 
-    student = Student.query.get(student_id)
-    if not student:
-        return jsonify({'success': False, 'error': 'Student not found'}), 404
 
-    if allocation == 'אודיו ושיקום':
-        # Remove all existing "שפה" assignments
-        Assignment.query.filter_by(student_id=student_id, allocation='שפה').delete()
-
-        # Add the "אודיו ושיקום" assignment if it doesn't already exist
-        existing_assignment = Assignment.query.filter_by(student_id=student_id, allocation='אודיו ושיקום').first()
-        if not existing_assignment:
-            new_assignment = Assignment(
-                student_id=student_id,
-                instructor_id=501,  # Set the instructor_id to 501 for "אודיו ושיקום"
-                assigned_day='ראשון',  # Set the assigned day to "ראשון"
-                allocation='אודיו ושיקום'
-            )
-            db.session.add(new_assignment)
-    elif allocation == 'שפה':
-        # Remove any existing "אודיו ושיקום" assignments
-        Assignment.query.filter_by(student_id=student_id, allocation='אודיו ושיקום').delete()
-
-    db.session.commit()
-    return jsonify({'success': True}), 200

@@ -21,6 +21,7 @@ class ClinicalInstructor(db.Model):
 class Student(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
+    email = db.Column(db.String(100), nullable=False, default="add_email@gmail.com")  # New email field
     preferred_field_id_1 = db.Column(db.Integer, db.ForeignKey('field.id'), nullable=False)
     preferred_field_1 = db.relationship('Field', foreign_keys=[preferred_field_id_1], backref='students_1')
     preferred_field_id_2 = db.Column(db.Integer, db.ForeignKey('field.id'), nullable=False)
@@ -28,14 +29,13 @@ class Student(db.Model):
     preferred_field_id_3 = db.Column(db.Integer, db.ForeignKey('field.id'), nullable=False)
     preferred_field_3 = db.relationship('Field', foreign_keys=[preferred_field_id_3], backref='students_3')
     preferred_practice_area = db.Column(db.String(100), nullable=False)
-    semester = db.Column(db.String(1), nullable=False, default='א')  # New field for semester
+    semester = db.Column(db.String(1), nullable=False, default='א')  # Renamed field
 
 class Assignment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     student_id = db.Column(db.Integer, db.ForeignKey('student.id'), nullable=False)
     instructor_id = db.Column(db.Integer, db.ForeignKey('clinical_instructor.id'), nullable=True)
     assigned_day = db.Column(db.String(20), nullable=False)
-    allocation = db.Column(db.String(20), nullable=False, default='שפה')  # New field for allocation
     instructor = db.relationship('ClinicalInstructor', backref='assignments')
     student = db.relationship('Student', backref='assignments')
 
