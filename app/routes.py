@@ -166,7 +166,7 @@ def assign_instructor(student_id):
                 db.session.commit()
 
                 # Restore availability if all assignments are canceled
-                if instructor.single_assignment:
+                if instructor and instructor.single_assignment:
                     remaining_assignments = Assignment.query.filter_by(instructor_id=instructor.id).count()
                     if remaining_assignments == 0:
                         original_days = [day.replace('-לא-זמין', '') for day in instructor.available_days_to_assign.split(',')]
@@ -178,22 +178,37 @@ def assign_instructor(student_id):
 
         instructor_id = request.form['instructor_id']
         assigned_day = request.form['assigned_day']
+        allocation = request.form.get('allocation', 'שפה')
 
-        # Check if the student already has an assignment on the selected day
-        existing_assignment = Assignment.query.filter_by(student_id=student.id, assigned_day=assigned_day).first()
-        if existing_assignment:
-            return redirect(url_for('main.assign_instructor', student_id=student_id))  # Redirect if already assigned
+        if allocation == 'אודיו ושיקום':
+            # Remove all existing "שפה" assignments
+            Assignment.query.filter_by(student_id=student_id, allocation='שפה').delete()
 
-        assignment = Assignment(student_id=student.id, instructor_id=instructor_id, assigned_day=assigned_day)
-        db.session.add(assignment)
+            # Add the "אודיו ושיקום" assignment if it doesn't already exist
+            existing_assignment = Assignment.query.filter_by(student_id=student_id, allocation='אודיו ושיקום').first()
+            if not existing_assignment:
+                assignment = Assignment(
+                    student_id=student.id,
+                    instructor_id=501,  # Set the instructor_id to 501 for "אודיו ושיקום"
+                    assigned_day='ראשון',  # Set the assigned day to "ראשון"
+                    allocation='אודיו ושיקום'
+                )
+                db.session.add(assignment)
+        elif allocation == 'שפה':
+            # Remove any existing "אודיו ושיקום" assignments
+            Assignment.query.filter_by(student_id=student_id, allocation='אודיו ושיקום').delete()
 
-        instructor = ClinicalInstructor.query.get(instructor_id)
-        if instructor.single_assignment:
-            # Mark other days as unavailable without removing them
-            available_days = instructor.available_days_to_assign.split(',')
-            available_days_with_suffix = [day if day == assigned_day else day + '-לא-זמין' for day in available_days]
-            instructor.available_days_to_assign = ','.join(available_days_with_suffix)
-            db.session.add(instructor)
+            # Add the new "שפה" assignment
+            assignment = Assignment(student_id=student.id, instructor_id=instructor_id, assigned_day=assigned_day, allocation=allocation)
+            db.session.add(assignment)
+
+            instructor = ClinicalInstructor.query.get(instructor_id)
+            if instructor and instructor.single_assignment:
+                # Mark other days as unavailable without removing them
+                available_days = instructor.available_days_to_assign.split(',')
+                available_days_with_suffix = [day if day == assigned_day else day + '-לא-זמין' for day in available_days]
+                instructor.available_days_to_assign = ','.join(available_days_with_suffix)
+                db.session.add(instructor)
 
         db.session.commit()
         return redirect(url_for('main.assign_instructor', student_id=student_id))
@@ -537,14 +552,20 @@ def assignments_view():
         student_name = assignment.student.name
         if student_name in assignments_data:  # Ensure the student is in the filtered students list
             day = assignment.assigned_day
-            instructor_name = assignment.instructor.name
-            practice_location = assignment.instructor.practice_location
-            area_of_expertise = assignment.instructor.area_of_expertise.name
-            color_class = f"color-{instructor_name.replace(' ', '-').replace('.', '').lower()}"
-            assignments_data[student_name][day] = {
-                'text': f"{instructor_name} - {practice_location} - {area_of_expertise}",
-                'color_class': color_class
-            }
+            if assignment.instructor:
+                instructor_name = assignment.instructor.name
+                practice_location = assignment.instructor.practice_location
+                area_of_expertise = assignment.instructor.area_of_expertise.name
+                color_class = f"color-{instructor_name.replace(' ', '-').replace('.', '').lower()}"
+                assignments_data[student_name][day] = {
+                    'text': f"{instructor_name} - {practice_location} - {area_of_expertise}",
+                    'color_class': color_class
+                }
+            else:
+                assignments_data[student_name][day] = {
+                    'text': 'N/A',
+                    'color_class': 'color-none'
+                }
 
     student_assignments_count = {student.name: 0 for student in students}
     for assignment in assignments:
@@ -789,29 +810,74 @@ def editable_instructors():
 
 @bp.route('/current_assignments_table')
 def current_assignments_table():
-    semester = request.args.get('semester', 'א')  # Default to semester 'א'
-    students = Student.query.filter_by(semester=semester).all()
+    semester = request.args.get('semester', 'א')
+    students = Student.query.all()  # Get all students
     assignments = Assignment.query.all()
+
     student_assignments = {}
 
     for student in students:
         student_assignments[student.id] = {
+            'id': student.id,  # Include student_id
             'name': student.name,
             'preferred_fields': [
                 student.preferred_field_1.name if student.preferred_field_1 else '',
                 student.preferred_field_2.name if student.preferred_field_2 else '',
                 student.preferred_field_3.name if student.preferred_field_3 else ''
             ],
-            'assignments': [None, None, None]  # Placeholder for three assignments
+            'allocation': 'שפה',  # Default to שפה
+            'assignments': [None, None, None]
         }
 
     for assignment in assignments:
         student_id = assignment.student_id
         student_data = student_assignments.get(student_id)
         if student_data:
-            for i, preferred_field in enumerate(student_data['preferred_fields']):
-                if len(student_data['assignments']) > i and student_data['assignments'][i] is None:
+            if assignment.allocation:
+                student_data['allocation'] = assignment.allocation
+
+            for i, _ in enumerate(student_data['assignments']):
+                if student_data['assignments'][i] is None:
                     student_data['assignments'][i] = assignment
                     break
 
-    return render_template('current_assignments_table.html', student_assignments=student_assignments, semester=semester)
+    # Convert dictionary to a list and sort it
+    sorted_students = sorted(student_assignments.values(), key=lambda x: (
+        x['allocation'] != 'שפה',
+        x['allocation'] != 'אודיו ושיקום'
+    ))
+
+    return render_template('current_assignments_table.html', student_assignments=sorted_students, semester=semester)
+
+@bp.route('/update_allocation/<int:student_id>', methods=['POST'])
+def update_allocation(student_id):
+    data = request.get_json()
+    allocation = data.get('allocation')
+
+    if allocation not in ['שפה', 'אודיו ושיקום']:
+        return jsonify({'success': False, 'error': 'Invalid allocation value'}), 400
+
+    student = Student.query.get(student_id)
+    if not student:
+        return jsonify({'success': False, 'error': 'Student not found'}), 404
+
+    if allocation == 'אודיו ושיקום':
+        # Remove all existing "שפה" assignments
+        Assignment.query.filter_by(student_id=student_id, allocation='שפה').delete()
+
+        # Add the "אודיו ושיקום" assignment if it doesn't already exist
+        existing_assignment = Assignment.query.filter_by(student_id=student_id, allocation='אודיו ושיקום').first()
+        if not existing_assignment:
+            new_assignment = Assignment(
+                student_id=student_id,
+                instructor_id=501,  # Set the instructor_id to 501 for "אודיו ושיקום"
+                assigned_day='ראשון',  # Set the assigned day to "ראשון"
+                allocation='אודיו ושיקום'
+            )
+            db.session.add(new_assignment)
+    elif allocation == 'שפה':
+        # Remove any existing "אודיו ושיקום" assignments
+        Assignment.query.filter_by(student_id=student_id, allocation='אודיו ושיקום').delete()
+
+    db.session.commit()
+    return jsonify({'success': True}), 200

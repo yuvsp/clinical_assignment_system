@@ -24,13 +24,14 @@
     <thead class="thead-light">
         <tr>
             <th class="text-right">שם הסטודנט</th>
+            <th class="text-right">הקצאה</th>
             <th class="text-right">שיבוץ 1</th>
             <th class="text-right">שיבוץ 2</th>
             <th class="text-right">שיבוץ 3</th>
         </tr>
     </thead>
     <tbody>
-        {% for student_id, student_data in student_assignments.items() %}
+        {% for student_data in student_assignments %}
         <tr>
             <td class="text-right">
                 {{ student_data.name }}<br>
@@ -40,31 +41,43 @@
                     3. {{ student_data.preferred_fields[2] }}
                 </small>
             </td>
-            {% for i in range(3) %}
-                {% if student_data.assignments[i] %}
-                    {% set reason = student_data.assignments[i].instructor.area_of_expertise.name not in student_data.preferred_fields and 'table-warning' %}
-                    <td class="text-center {{ reason }}">
-                        <form method="post" action="{{ url_for('main.remove_assignment', assignment_id=student_data.assignments[i].id) }}" class="d-inline">
-                            <button type="submit" class="btn btn-cancel">ביטול שיבוץ</button>
-                        </form>
-                        <div style="margin-top: 5px;">
-                            {{ student_data.assignments[i].instructor.area_of_expertise.name }}
-                            {{ student_data.assignments[i].instructor.name }}<br>
-                            יום {{ student_data.assignments[i].assigned_day }} ב{{ student_data.assignments[i].instructor.practice_location }}<br>
-                        </div>
-                    </td>
-                {% else %}
-                    <td class="text-center">
-                        <div class="student-container">
-                            <div class="student" onmouseover="fetchInstructors('{{ student_id }}', this.querySelector('.instructors-tooltip'))" data-student-id="{{ student_id }}">
-                                <a href="{{ url_for('main.assign_instructor', student_id=student_id) }}" class="btn btn-primary">שיבוץ</a>
-                                <div class="instructors-tooltip">טוען...</div>
+            <td class="text-right">
+                <select class="form-control allocation-select" data-student-id="{{ student_data.id }}">
+                    <option value="שפה" {{ 'selected' if student_data.allocation == 'שפה' else '' }}>שפה</option>
+                    <option value="אודיו ושיקום" {{ 'selected' if student_data.allocation == 'אודיו ושיקום' else '' }}>אודיו ושיקום</option>
+                </select>
+            </td>
+            {% if student_data.allocation == 'אודיו ושיקום' %}
+                <td class="text-center" colspan="3">אודיו ושיקום</td>
+            {% else %}
+                {% for i in range(3) %}
+                    {% if student_data.assignments[i] %}
+                        {% set assignment = student_data.assignments[i] %}
+                        {% set instructor = assignment.instructor %}
+                        {% set reason = instructor and instructor.area_of_expertise and instructor.area_of_expertise.name not in student_data.preferred_fields and 'table-warning' %}
+                        <td class="text-center {{ reason }}">
+                            <form method="post" action="{{ url_for('main.remove_assignment', assignment_id=assignment.id) }}" class="d-inline">
+                                <button type="submit" class="btn btn-cancel">ביטול שיבוץ</button>
+                            </form>
+                            <div style="margin-top: 5px;">
+                                {{ instructor.area_of_expertise.name if instructor else '' }}
+                                {{ instructor.name if instructor else '' }}<br>
+                                יום {{ assignment.assigned_day }} ב{{ instructor.practice_location if instructor else '' }}<br>
                             </div>
-                        </div>
-                        <div style="margin-top: 5px;">לא שובץ עדיין</div>
-                    </td>
-                {% endif %}
-            {% endfor %}
+                        </td>
+                    {% else %}
+                        <td class="text-center">
+                            <div class="student-container">
+                                <div class="student" onmouseover="fetchInstructors('{{ student_data.id }}', this.querySelector('.instructors-tooltip'))" data-student-id="{{ student_data.id }}">
+                                    <a href="{{ url_for('main.assign_instructor', student_id=student_data.id) }}" class="btn btn-primary">שיבוץ</a>
+                                    <div class="instructors-tooltip">טוען...</div>
+                                </div>
+                            </div>
+                            <div style="margin-top: 5px;">לא שובץ עדיין</div>
+                        </td>
+                    {% endif %}
+                {% endfor %}
+            {% endif %}
         </tr>
         {% endfor %}
     </tbody>
@@ -76,6 +89,31 @@ function toggleSemester() {
     const semester = toggle.checked ? 'א' : 'ב';
     window.location.href = `{{ url_for('main.current_assignments_table') }}?semester=${semester}`;
 }
+
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.allocation-select').forEach(function(selectElement) {
+        selectElement.addEventListener('change', function() {
+            const studentId = this.getAttribute('data-student-id');
+            const allocation = this.value;
+            fetch(`/update_allocation/${studentId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ allocation: allocation })
+            }).then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert('Failed to update allocation');
+                }
+            }).catch(error => {
+                console.error('Error updating allocation:', error);
+            });
+        });
+    });
+});
 </script>
 
 {% endblock %}

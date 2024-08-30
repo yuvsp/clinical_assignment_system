@@ -33,8 +33,9 @@ class Student(db.Model):
 class Assignment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     student_id = db.Column(db.Integer, db.ForeignKey('student.id'), nullable=False)
-    instructor_id = db.Column(db.Integer, db.ForeignKey('clinical_instructor.id'), nullable=False)
+    instructor_id = db.Column(db.Integer, db.ForeignKey('clinical_instructor.id'), nullable=True)
     assigned_day = db.Column(db.String(20), nullable=False)
+    allocation = db.Column(db.String(20), nullable=False, default='שפה')  # New field for allocation
     instructor = db.relationship('ClinicalInstructor', backref='assignments')
     student = db.relationship('Student', backref='assignments')
 
