@@ -136,7 +136,7 @@ function emailToStudent(studentId, studentEmail, studentName) {
             // Prepare the subject with the student's full name
             const subject = encodeURIComponent(`שיבוץ שפה ודיבור - ${studentName}`);
 
-            // Plain text body with line breaks, using the first name
+            // Plain text body with line breaks, using the first name 
             const body = encodeURIComponent(`שלום ${firstName},\n\nמצורפים השיבוצים עבור שפה ודיבור לסמסטר הקרוב.\n\nשיהיה בהצלחה,\nרון`);
 
             const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${studentEmail}&su=${subject}&body=${body}`;
