@@ -870,6 +870,6 @@ def determine_allocation(student):
 def download_pdf(student_id):
     student = Student.query.get_or_404(student_id)
     pdf = generate_student_pdf(student)
-    return send_file(pdf, download_name=f"שיבוצים שפה ודי   בור {student.name}.pdf", as_attachment=True)
+    return send_file(pdf, download_name=f"שיבוצים שפה ודיבור {student.name}.pdf", as_attachment=True)
 
 

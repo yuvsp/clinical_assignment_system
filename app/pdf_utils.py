@@ -29,7 +29,7 @@ def generate_student_pdf(student):
     doc = SimpleDocTemplate(
         buffer, 
         pagesize=A4,
-        title=f"שיבוצים שפה ודיבור{student.name}",
+        title=f"שיבוצים שפה ודיבור {student.name}",
         author="רון דאר",
         subject="שיבוצים שפה ודיבור"
     )
@@ -66,7 +66,7 @@ def generate_student_pdf(student):
 
     # Table Data - headers with correct RTL display
     data = [
-        [reverse_text("פרטי התקשרות"), reverse_text("קלינאית מדריכה"), reverse_text("מקום התנסות"), reverse_text("תאריך התחלה"), reverse_text("יום התנסות")],
+        [reverse_text("פרטי התקשרות"), reverse_text("קלינאית מדריכה"), reverse_text("מקום התנסות"), reverse_text("יום התנסות")],
     ]
 
     # Populating table with student's assignment data
@@ -75,10 +75,10 @@ def generate_student_pdf(student):
         instructor_name = reverse_text(instructor.name) if instructor else ""
         contact_info = format_phone_number(instructor.phone) if instructor else ""  # Format the phone number
         place = reverse_text(instructor.practice_location) if instructor else ""
-        start_date = reverse_text(assignment.assigned_day)
+        # start_date = reverse_text(assignment.assigned_day)
         day = reverse_text(assignment.assigned_day)
 
-        data.append([contact_info, instructor_name, place, start_date, day])
+        data.append([contact_info, instructor_name, place, day])
 
     # Creating the table with the data
     table = Table(data, colWidths=[100, 100, 100, 100, 100])
@@ -99,6 +99,16 @@ def generate_student_pdf(student):
     ]))
 
     elements.append(table)
+
+    # Spacer between table and bottom text
+    elements.append(Spacer(1, 60))
+
+    bottom_text = Paragraph(reverse_text(f"31 ימי התנסות בכל מקום."), hebrew_style)
+    elements.append(bottom_text)
+    bottom_text = Paragraph(reverse_text(f"בכל אחד מהמקומות יש ליצור קשר טלפוני עם הקלינאית המדריכה"), hebrew_style)
+    elements.append(bottom_text)
+    bottom_text = Paragraph(reverse_text(f"כשבוע לפני מועד ההתחלה, לשם קבלת מידע ראשוני לגבי ההתנסות"), hebrew_style)
+    elements.append(bottom_text)
 
     # Spacer between table and footer
     elements.append(Spacer(1, 200))

@@ -129,11 +129,15 @@ function emailToStudent(studentId, studentEmail, studentName) {
             // Create a URL for the blob
             const pdfUrl = URL.createObjectURL(blob);
 
-            // Prepare the subject with the student's name
-            const subject = encodeURIComponent(`שיבוצים - ${studentName}`);
+            // Extract the first name (last word in the string)
+            const nameParts = studentName.trim().split(' ');
+            const firstName = nameParts[nameParts.length - 1];
 
-            // Plain text body with line breaks
-            const body = encodeURIComponent(`היי,\n\nמצורפים השיבוצים עבור שפה ודיבור.\n\nתודה, והמון בהצלחה,\nרון דאר`);
+            // Prepare the subject with the student's full name
+            const subject = encodeURIComponent(`שיבוץ שפה ודיבור - ${studentName}`);
+
+            // Plain text body with line breaks, using the first name
+            const body = encodeURIComponent(`שלום ${firstName},\n\nמצורפים השיבוצים עבור שפה ודיבור לסמסטר הקרוב.\n\nשיהיה בהצלחה,\nרון`);
 
             const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${studentEmail}&su=${subject}&body=${body}`;
 
