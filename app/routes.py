@@ -60,7 +60,7 @@ def current_assignments():
             'assignments': [None, None, None]  # Placeholder for three assignments
         }
 
-    for assignment in assignments:
+    for assignment in assignments: 
         student_id = assignment.student_id
         student_data = student_assignments.get(student_id)
         if student_data:
