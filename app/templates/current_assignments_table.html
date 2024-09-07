@@ -3,15 +3,6 @@
 {% block content %}
 <h1 class="mb-4 text-right">שיבוץ</h1>
 
-<!-- <div class="mb-3 text-center">
-    <label class="semester-label">סמסטר א</label>
-    <label class="switch">
-        <input type="checkbox" id="semester_toggle" onclick="toggleSemester()" {{ 'checked' if semester == 'א' else '' }}>
-        <span class="slider round"></span>
-    </label>
-    <label class="semester-label">סמסטר ב</label>
-</div> -->
-
 <div class="mb-3 text-center">
     <form action="{{ url_for('main.import_backup_excel') }}" method="post" enctype="multipart/form-data" class="d-inline">
         <input type="file" name="file" class="form-control-file d-inline-block mb-2" required>
@@ -24,17 +15,19 @@
     <thead class="thead-light">
         <tr>
             <th class="text-right">שם הסטודנט</th>
-            <th class="text-right">שיבוץ 1</th>
-            <th class="text-right">שיבוץ 2</th>
-            <th class="text-right">שיבוץ 3</th>
+            <th class="text-center">ראשון</th>
+            <th class="text-center">שני</th>
+            <th class="text-center">שלישי</th>
+            <th class="text-center">רביעי</th>
+            <th class="text-center">חמישי</th>
         </tr>
     </thead>
     <tbody>
         {% for student_data in student_assignments %}
         <tr>
             <td class="text-right">
-                <div style="position: relative; padding-left: 40px;">
-                    <div style="position: absolute; top: 0; left: 0; display: flex; gap: 5px;">
+                <div style="position: relative; padding-left: 50px;">
+                    <div style="position: absolute; top: 0; left: 0; display: flex; gap: 2px;">
                         <button class="btn btn-icon" onclick="printToPDF('{{ student_data.id }}')" title="ייצוא PDF">
                             <i class="fas fa-print"></i>
                         </button>
@@ -42,8 +35,15 @@
                             <i class="fas fa-envelope"></i>
                         </button>                        
                     </div>
-                    {{ student_data.name }}<br>
-                    <small style="font-size: 85%;">{{ student_data.email }}</small><br>
+                    {% set student_assignments_list = student_data.assignments|selectattr('student_id', 'equalto', student_data.id)|list %}
+                    {% set student_assignments_count = student_assignments_list|length %}
+                    {% if student_assignments_count == 3 %}
+                        <span style="color: green;">✅</span>
+                    {% endif %}
+                     {{ student_data.name }}
+                   <br>
+                    <small style="font-size: 65%;">{{ student_data.email }}</small><br>
+                    <!-- <small style="text-overflow: ellipsis;overflow: hidden; white-space: nowrap;   "> -->
                     <small>
                         1. {{ student_data.preferred_fields[0] }}<br>
                         2. {{ student_data.preferred_fields[1] }}<br>
@@ -51,36 +51,43 @@
                     </small>
                 </div>
             </td>
+            
+
             {% if student_data.allocation == 'אודיו ושיקום' %}
-                <td class="text-center" colspan="3">אודיו ושיקום</td>
+                <!-- If allocation is אודיו ושיקום, show only one cell -->
+                <td class="text-center" colspan="5">אודיו ושיקום</td>
             {% else %}
-                {% for i in range(3) %}
-                    {% if student_data.assignments[i] %}
-                        {% set assignment = student_data.assignments[i] %}
+                {% set days_of_week = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי'] %}
+                
+                {% set student_assignments_list = student_data.assignments|selectattr('student_id', 'equalto', student_data.id)|list %}
+                {% set student_assignments_count = student_assignments_list|length %}
+                
+                {% for day in days_of_week %}
+                <td class="text-center {% if student_assignments_count == 3 %}beige-background{% endif %}">
+                    {% set assignment = student_data.assignments|selectattr('assigned_day', 'equalto', day)|first() %}
+                    {% if assignment %}
                         {% set instructor = assignment.instructor %}
-                        {% set reason = instructor and instructor.area_of_expertise and instructor.area_of_expertise.name not in student_data.preferred_fields and 'table-warning' %}
-                        <td class="text-center {{ reason }}">
-                            <form method="post" action="{{ url_for('main.remove_assignment', assignment_id=assignment.id) }}" class="d-inline">
-                                <button type="submit" class="btn btn-cancel">ביטול שיבוץ</button>
-                            </form>
-                            <div style="margin-top: 5px;">
-                                {{ instructor.area_of_expertise.name if instructor else '' }}
-                                {{ instructor.name if instructor else '' }}<br>
-                                יום {{ assignment.assigned_day }} ב{{ instructor.practice_location if instructor else '' }}<br>
-                            </div>
-                        </td>
+                        <form method="post" action="{{ url_for('main.remove_assignment', assignment_id=assignment.id) }}" >
+                            <button type="submit" class="btn btn-cancel">ביטול</button>
+                        </form>
+                        <div style="margin-top: 5px;  padding: 5px;">
+                            <span style= "background-color: {{ instructor_colors[instructor.name] }};"> {{ instructor.name if instructor else '' }}
+                            ב{{ instructor.practice_location if instructor else '' }} </span>
+                        </div>
+                    {% elif student_assignments_count < 3 %}
+                        <!-- Tooltip for instructor availability when hovering -->
+                        <div class="student-container">
+                            <div class="student" data-student-id="{{ student_data.id }}" onmouseover="fetchInstructors('{{ student_data.id }}', '{{ day }}', this.querySelector('.instructors-tooltip'))">
+                                <a href="{{ url_for('main.assign_instructor', student_id=student_data.id, assigned_day=day) }}" class="btn btn-primary">שיבוץ</a>
+                                <div class="instructors-tooltip">טוען...</div>
+                            </div>                            
+                        </div>
                     {% else %}
-                        <td class="text-center">
-                            <div class="student-container">
-                                <div class="student" onmouseover="fetchInstructors('{{ student_data.id }}', this.querySelector('.instructors-tooltip'))" data-student-id="{{ student_data.id }}">
-                                    <a href="{{ url_for('main.assign_instructor', student_id=student_data.id) }}" class="btn btn-primary">שיבוץ</a>
-                                    <div class="instructors-tooltip">טוען...</div>
-                                </div>
-                            </div>
-                            <div style="margin-top: 5px;">לא שובץ עדיין</div>
-                        </td>
+                        <!-- Already 3 assignments, no need for more, beige background -->
+                        <div class="beige-background" style="height: 40px;"></div>
                     {% endif %}
-                {% endfor %}
+                </td>
+            {% endfor %}            
             {% endif %}
         </tr>
         {% endfor %}
@@ -109,6 +116,27 @@
     background-color: rgba(0, 0, 0, 0.1) !important;
     border-color: #aaa !important;
 }
+
+/* Tooltip styling */
+.instructors-tooltip {
+    visibility: hidden;
+    width: 200px;
+    background-color: #f9f9f9;
+    color: #000;
+    text-align: left;
+    border: 1px solid #ccc;
+    padding: 10px;
+    position: absolute;
+    z-index: 1;
+    top: 100%;
+    left: 50%;
+    margin-left: -100px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.student:hover .instructors-tooltip {
+    visibility: visible;
+}
 </style>
 
 <script>
@@ -126,26 +154,15 @@ function emailToStudent(studentId, studentEmail, studentName) {
     fetch(`/download_pdf/${studentId}`)
         .then(response => response.blob())
         .then(blob => {
-            // Create a URL for the blob
             const pdfUrl = URL.createObjectURL(blob);
-
-            // Extract the first name (last word in the string)
             const nameParts = studentName.trim().split(' ');
             const firstName = nameParts[nameParts.length - 1];
-
-            // Prepare the subject with the student's full name
             const subject = encodeURIComponent(`שיבוץ שפה ודיבור - ${studentName}`);
-
-            // Plain text body with line breaks, using the first name 
             const body = encodeURIComponent(`שלום ${firstName},\n\nמצורפים השיבוצים עבור שפה ודיבור לסמסטר הקרוב.\n\nשיהיה בהצלחה,\nרון`);
-
             const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${studentEmail}&su=${subject}&body=${body}`;
-
-            // Open Gmail in a new window/tab
             window.open(gmailUrl, '_blank');
         });
 }
-
 </script>
 
 {% endblock %}
