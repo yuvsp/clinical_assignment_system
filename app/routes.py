@@ -819,9 +819,15 @@ def editable_instructors():
 @bp.route('/current_assignments_table')
 def current_assignments_table():
     semester = request.args.get('semester', 'א')
-    students = Student.query.all()  # Get all students
+    
+    # Fetch students and assignments
+    students = Student.query.all()
     assignments = Assignment.query.all()
-
+    
+    # Prepare instructor colors dictionary (assuming each instructor has a color field)
+    instructors = ClinicalInstructor.query.all()
+    instructor_colors = {instructor.name: instructor.color for instructor in instructors}  # Adjust according to your model
+    
     student_assignments = {}
 
     for student in students:
@@ -856,7 +862,12 @@ def current_assignments_table():
         x['allocation'] != 'אודיו ושיקום'
     ))
 
-    return render_template('current_assignments_table.html', student_assignments=sorted_students, semester=semester)
+    return render_template(
+        'current_assignments_table.html', 
+        student_assignments=sorted_students, 
+        semester=semester, 
+        instructor_colors=instructor_colors  # Pass instructor colors to the template
+    )
 
 def determine_allocation(student):
     if student.semester == 'א':

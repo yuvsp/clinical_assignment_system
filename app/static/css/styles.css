@@ -110,7 +110,7 @@ button:hover, .btn:hover {
 
 
 .btn-cancel {
-    background-color:  #dfddc8 !important;
+    background-color:  #e7e7e1b6 !important;
     color:  #000000 !important;
     border: none !important;
 }
@@ -124,6 +124,7 @@ button:hover, .btn:hover {
 /* Ensure buttons with the same minimum width */
 .btn-primary, .btn-danger, .btn-cancel {
     min-width: 120px; /* Adjust the width based on the longer text button */
+    max-height: 40px;
 }
 
 .table-success .btn, .table-danger .btn, .table-warning .btn {
@@ -368,3 +369,35 @@ form {
     align-items: center;
 }
   
+/* Style for the שיבוץ button */
+.btn-primary {
+    background-color: transparent !important; /* No fill */
+    border: 1px solid var(--primary-color) !important; /* Keep the primary color border */
+    color: black !important; /* Keep the primary color for text */
+    padding: 8px 16px; /* Adjust padding if needed */
+}
+
+.btn-primary:hover {
+    background-color: rgba(76, 175, 80, 0.1) !important; /* Light green hover effect */
+    color: black !important;
+    border-color: var(--primary-color) !important;
+}
+
+
+.current-assignments-table th, .current-assignments-table td {
+    width: 20%; /* Default width for the other columns */
+    line-height: 1; /* Reduced line height */
+    padding: 5px 10px; /* Reduced padding inside table cells */
+}
+
+.current-assignments-table th:first-child, 
+.current-assignments-table td:first-child {
+    width: 25%; /* Wider width for the first column */
+}
+
+
+.beige-background {
+    background-color: #e7e7e1b6; /* Beige color for the div */
+    width: 100%; /* Ensure it fills the width */
+    height: 100%; /* Ensure it fills the height */
+}
