@@ -70,9 +70,9 @@
                         <form method="post" action="{{ url_for('main.remove_assignment', assignment_id=assignment.id) }}" >
                             <button type="submit" class="btn btn-cancel">ביטול</button>
                         </form>
-                        <div style="margin-top: 5px;  padding: 5px;">
-                            <span style= "background-color: {{ instructor_colors[instructor.name] }};"> {{ instructor.name if instructor else '' }}
-                            ב{{ instructor.practice_location if instructor else '' }} </span>
+                        <div style="max-width: 140px; padding: 2px 2px ;background-color: {{ instructor_colors[instructor.name] }};border-radius: 4px;display: inline-block;  margin: 4px auto 0; text-align: center; height: 32px;justify-content: center;align-items: center;display: flex;">
+                             {{ instructor.name if instructor else '' }}
+                            ב{{ instructor.practice_location if instructor else '' }}  
                         </div>
                     {% elif student_assignments_count < 3 %}
                         <!-- Tooltip for instructor availability when hovering -->
@@ -84,7 +84,7 @@
                         </div>
                     {% else %}
                         <!-- Already 3 assignments, no need for more, beige background -->
-                        <div class="beige-background" style="height: 40px;"></div>
+                        <div class="beige-background" style="border-radius: 4px;display: inline-block;  margin: 0 auto;text-align: center; height: 32px;justify-content: center;align-items: center;display: flex;"></div>
                     {% endif %}
                 </td>
             {% endfor %}            
