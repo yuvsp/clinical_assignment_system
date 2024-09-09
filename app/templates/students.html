@@ -2,13 +2,13 @@
 
 {% block content %}
 <h1 class="mb-4 text-right">סטודנטיות</h1>
-<a href="{{ url_for('main.add_student') }}" class="btn btn-primary mb-3">הוסף סטודנטית</a>
-<a href="{{ url_for('main.download_students') }}" class="btn btn-primary mb-3">הורד קובץ אקסל</a>
+<a href="{{ url_for('main.add_student') }}" class="btn btn-success mb-4">הוסף סטודנטית</a>
+<a href="{{ url_for('main.download_students') }}" class="btn btn-success mb-4">הורד קובץ אקסל</a>
 <form action="{{ url_for('main.upload_students') }}" method="post" enctype="multipart/form-data">
     <div class="form-group">
         <input type="file" class="form-control-file" name="file" required>
     </div>
-    <button type="submit" class="btn btn-primary">ייבא רשומות סטודנטיות</button>
+    <button type="submit" class="btn-success mb-4">ייבא רשומות סטודנטיות</button>
 </form>
 <table class="table table-bordered mt-4" dir="rtl">
     <thead class="thead-light">
