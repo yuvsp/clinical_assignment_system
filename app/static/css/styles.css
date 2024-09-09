@@ -88,7 +88,7 @@ button, .btn {
     background-color: var(--primary-color) !important;
     color: var(--white) !important;
     border-radius: 4px; /* Changed from 20px to 4px for more rectangular buttons */
-    padding: 10px 20px;
+    padding: 6px 12px;
     font-family: 'Alef', 'Roboto', sans-serif;
     font-weight: 500;
     transition: background-color 0.3s ease;
@@ -110,7 +110,7 @@ button:hover, .btn:hover {
 
 
 .btn-cancel {
-    background-color:  #e7e7e1b6 !important;
+    background-color:  #d4d2b557 !important;
     color:  #000000 !important;
     border: none !important;
 }
@@ -123,8 +123,8 @@ button:hover, .btn:hover {
 
 /* Ensure buttons with the same minimum width */
 .btn-primary, .btn-danger, .btn-cancel {
-    min-width: 120px; /* Adjust the width based on the longer text button */
-    max-height: 40px;
+    min-width: 140px; /* Adjust the width based on the longer text button */
+    max-height: 32px;
 }
 
 .table-success .btn, .table-danger .btn, .table-warning .btn {
@@ -134,7 +134,7 @@ button:hover, .btn:hover {
 /* Ensure buttons inside the table cell have no padding/margin */
 .table td .btn {
     margin: 0;
-    padding: 10px 20px;
+    padding: 2px 4px;
     border: none;
 }
 
@@ -168,7 +168,7 @@ input[type="text"], input[type="number"], select, input[type="email"], input[typ
 
 /* Adjust form buttons */
 button, .btn {
-    margin-top: 10px; /* Add space above buttons */
+    margin-top: 4px; /* Add space above buttons */
 }
 
 /* Tooltip Styles */
@@ -369,25 +369,40 @@ form {
     align-items: center;
 }
   
-/* Style for the שיבוץ button */
+/* Style for the שיבוץ button with slant stripes */
 .btn-primary {
-    background-color: transparent !important; /* No fill */
-    border: 1px solid var(--primary-color) !important; /* Keep the primary color border */
-    color: black !important; /* Keep the primary color for text */
-    padding: 8px 16px; /* Adjust padding if needed */
+    background: repeating-linear-gradient(
+        135deg,  /* Angle for the stripes */
+        rgba(76, 175, 80, 0.2),  /* Lighter green */
+        rgba(76, 175, 80, 0.2) 8px,  /* Width of the green stripe */
+        transparent 10px,  /* Gap */
+        transparent 10px  /* Width of the transparent space */
+    ) !important;
+    border: 1px solid var(--primary-color) !important;
+    color: black !important;
+    padding: 8px 16px;
+    transition: background 0.3s ease;
+    min-height: 64px;
 }
 
 .btn-primary:hover {
-    background-color: rgba(76, 175, 80, 0.1) !important; /* Light green hover effect */
+    background: repeating-linear-gradient(
+        135deg, 
+        rgba(76, 175, 80, 0.4),  /* Darker green on hover */
+        rgba(76, 175, 80, 0.4) 8px,
+        transparent 10px,
+        transparent 10px
+    ) !important;
     color: black !important;
     border-color: var(--primary-color) !important;
 }
 
 
+
 .current-assignments-table th, .current-assignments-table td {
     width: 20%; /* Default width for the other columns */
     line-height: 1; /* Reduced line height */
-    padding: 5px 10px; /* Reduced padding inside table cells */
+    padding: 4px 4px; /* Reduced padding inside table cells */
 }
 
 .current-assignments-table th:first-child, 
@@ -397,7 +412,10 @@ form {
 
 
 .beige-background {
-    background-color: #e7e7e1b6; /* Beige color for the div */
-    width: 100%; /* Ensure it fills the width */
+    background-color: #e7e7e17b; /* Beige color for the div */
+    width: 60%; /* Ensure it fills the width */
     height: 100%; /* Ensure it fills the height */
+
+
+
 }
