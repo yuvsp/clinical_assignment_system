@@ -70,7 +70,7 @@
                         <form method="post" action="{{ url_for('main.remove_assignment', assignment_id=assignment.id) }}" >
                             <button type="submit" class="btn btn-cancel">ביטול</button>
                         </form>
-                        <div style="max-width: 140px; padding: 2px 2px ;background-color: {{ instructor_colors[instructor.name] }};border-radius: 4px;display: inline-block;  margin: 4px auto 0; text-align: center; height: 32px;justify-content: center;align-items: center;display: flex;">
+                        <div style="font-size: 14px;max-width: 140px; padding: 4px 4px ;background-color: {{ instructor_colors[instructor.name] }};border-radius: 4px;display: inline-block;  margin: 4px auto 0; text-align: center; height: 34px;justify-content: center;align-items: center;display: flex;">
                              {{ instructor.name if instructor else '' }}
                             ב{{ instructor.practice_location if instructor else '' }}  
                         </div>

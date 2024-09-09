@@ -2,7 +2,7 @@
 
 {% block content %}
 <h1 class="mb-4 text-right">קלינאיות</h1>
-<a href="{{ url_for('main.add_instructor') }}" class="btn btn-primary mb-4">הוסף קלינאית</a>
+<a href="{{ url_for('main.add_instructor') }}" class="btn btn-success mb-4">הוסף קלינאית</a>
 <a href="{{ url_for('main.download_instructors') }}" class="btn btn-success mb-4">הורד קובץ אקסל</a>
 <form action="{{ url_for('main.upload_instructors') }}" method="post" enctype="multipart/form-data" class="mb-4">
     <input type="file" name="file" class="form-control-file mb-2" required>
