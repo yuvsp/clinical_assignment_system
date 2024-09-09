@@ -373,8 +373,8 @@ form {
 .btn-primary {
     background: repeating-linear-gradient(
         135deg,  /* Angle for the stripes */
-        rgba(76, 175, 80, 0.2),  /* Lighter green */
-        rgba(76, 175, 80, 0.2) 8px,  /* Width of the green stripe */
+        rgba(76, 175, 80, 0.1),  /* Lighter green */
+        rgba(76, 175, 80, 0.1) 8px,  /* Width of the green stripe */
         transparent 10px,  /* Gap */
         transparent 10px  /* Width of the transparent space */
     ) !important;
