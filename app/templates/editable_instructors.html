@@ -3,9 +3,11 @@
 {% block content %}
 <h1 class="mb-4 text-right">עריכת קלינאיות</h1>
 <button id="saveButton" class="btn btn-primary mb-4">שמור שינויים</button>
-<table class="table table-bordered" dir="rtl">
+<div class="table-container">
+    <table class="table table-bordered" dir="rtl">
     <thead class="thead-light">
         <tr>
+            <th class="text-right vertical-header">קיבלה חוזה</th>
             <th class="text-right">שם</th>
             <th class="text-right">מקום תרגול</th>
             <th class="text-right">תחום התמחות</th>
@@ -16,14 +18,17 @@
             <th class="text-right email-column">אימייל</th>
             <th class="text-right">ימים זמינים</th>
             <th class="text-right">יום אחד בלבד</th>
-            <th class="text-right vertical-header">מקס' סטודנטיות ביום</th>
-            <th class="text-right vertical-header">סמסטרים רלוונטיים</th>
+            <th class="text-right vertical-header">מקס' ביום</th>
+            <th class="text-right vertical-header">סמסטרים</th>
             <th class="text-right">צבע</th>
         </tr>
     </thead>
     <tbody>
         {% for instructor in instructors %}
         <tr data-id="{{ instructor.id }}">
+            <td class="{{ 'green' if instructor.has_contract else 'red' }}">
+                <input type="checkbox" {% if instructor.has_contract %}checked{% endif %}>
+            </td>            
             <td class="text-right instructor-name" style="--instructor-color: {{ instructor.color }};">
                 <div class="instructor-color"></div>
                 <div contenteditable="true" data-field="name">{{ instructor.name }}</div>
@@ -41,7 +46,9 @@
             <td contenteditable="true" data-field="address">{{ instructor.address }}</td>
             <td contenteditable="true" data-field="phone">{{ instructor.phone }}</td>
             <td contenteditable="true" data-field="email" class="email-text">{{ instructor.email }}</td>
-            <td contenteditable="true" data-field="available_days_to_assign">{{ instructor.available_days_to_assign }}</td>
+            <td contenteditable="true" data-field="available_days_to_assign">{{ instructor.available_days_to_assign}}
+                    <!-- {{ instructor.available_days_to_assign.replace('-לא-זמין-לא-זמין', ' חסום') | trim }} -->
+            </td>
             <td>
                 {% if instructor.available_days_to_assign.split(',') | length > 1 %}
                     <input type="checkbox" data-field="single_assignment" {% if instructor.single_assignment %}checked{% endif %}>
@@ -61,6 +68,7 @@
         {% endfor %}
     </tbody>
 </table>
+</div>
 {% endblock %}
 
 {% block scripts %}
@@ -84,7 +92,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 single_assignment: row.querySelector('[data-field="single_assignment"]') ? row.querySelector('[data-field="single_assignment"]').checked : false,
                 max_students_per_day: row.querySelector('[data-field="max_students_per_day"]').textContent.trim(),
                 relevant_semesters: row.querySelector('[data-field="relevant_semesters"]').value,
-                color: row.querySelector('[data-field="color"]').value
+                color: row.querySelector('[data-field="color"]').value,
+                
+                // Capture the checkbox state for "has_contract"
+                has_contract: row.querySelector('input[type="checkbox"]').checked
             };
             data.push(rowData);
         });

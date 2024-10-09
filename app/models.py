@@ -17,6 +17,7 @@ class ClinicalInstructor(db.Model):
     max_students_per_day = db.Column(db.Integer, nullable=False)
     color = db.Column(db.String(7), nullable=False, default='#FFFFFF')  # Default to white
     single_assignment = db.Column(db.Boolean, default=False)  # New field
+    has_contract = db.Column(db.Boolean, default=False)
 
 class Student(db.Model):
     id = db.Column(db.Integer, primary_key=True)
