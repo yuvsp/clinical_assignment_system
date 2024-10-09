@@ -20,6 +20,7 @@
             <th class="text-center">שלישי</th>
             <th class="text-center">רביעי</th>
             <th class="text-center">חמישי</th>
+            <th class="text-center">שישי</th>
         </tr>
     </thead>
     <tbody>
@@ -55,9 +56,9 @@
 
             {% if student_data.allocation == 'אודיו ושיקום' %}
                 <!-- If allocation is אודיו ושיקום, show only one cell -->
-                <td class="text-center" colspan="5">אודיו ושיקום</td>
+                <td class="text-center" colspan="6">אודיו ושיקום</td>
             {% else %}
-                {% set days_of_week = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי'] %}
+                {% set days_of_week = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי'] %}
                 
                 {% set student_assignments_list = student_data.assignments|selectattr('student_id', 'equalto', student_data.id)|list %}
                 {% set student_assignments_count = student_assignments_list|length %}

@@ -18,7 +18,7 @@
         <tbody>
             {% set assignment_count = student.assignments|length %}
             {% for instructor, day, assignment, student_already_assigned_to_instructor in relevant_instructor_days %}
-            <tr class="table-success">
+            <tr class="table-success" data-day="{{ day }}">
                 <td class="text-right">{{ instructor.name }}</td>
                 <td class="text-right">{{ instructor.area_of_expertise.name }} [{{ instructor.practice_location }}]</td>
                 <td class="text-right">{{ day }}</td>
@@ -31,13 +31,13 @@
                     {% if assignment and student_already_assigned_to_instructor %}
                     <button type="submit" name="cancel_assignment_id" value="{{ assignment.id }}" class="btn btn-danger">ביטול שיבוץ</button>
                     {% elif assignment_count < 3 %}
-                    <button type="submit" name="instructor_id" value="{{ instructor.id }}" onclick="document.getElementById('assigned_day').value='{{ day }}'" class="btn btn-primary" >שיבוץ</button>
+                    <button type="submit" name="instructor_id" value="{{ instructor.id }}" onclick="document.getElementById('assigned_day').value='{{ day }}'" class="btn btn-primary">שיבוץ</button>
                     {% endif %}
                 </td>
             </tr>
             {% endfor %}
             {% for instructor, day, reason in irrelevant_instructors %}
-            <tr class="{% if reason == 'תחום לא מועדף של הסטודנטית' %}table-warning{% else %}table-danger{% endif %}">
+            <tr class="{% if reason == 'תחום לא מועדף של הסטודנטית' %}table-warning{% else %}table-danger{% endif %}" data-day="{{ day }}">
                 <td class="text-right">{{ instructor.name }}</td>
                 <td class="text-right">{{ instructor.area_of_expertise.name }} [{{ instructor.practice_location }}]</td>
                 <td class="text-right">{{ day }}</td>
@@ -53,4 +53,30 @@
     </table>
     <input type="hidden" id="assigned_day" name="assigned_day">
 </form>
+
+<script>
+// Function to get the query parameter from the URL
+function getQueryParam(param) {
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get(param);
+}
+
+// Filter the table based on assigned_day parameter
+document.addEventListener('DOMContentLoaded', function() {
+    const assignedDay = getQueryParam('assigned_day');
+    
+    if (assignedDay) {
+        // Get all the rows from the table
+        const rows = document.querySelectorAll('tbody tr');
+
+        rows.forEach(function(row) {
+            const rowDay = row.getAttribute('data-day');
+            if (rowDay !== assignedDay) {
+                // Hide the rows that don't match the assigned day
+                row.style.display = 'none';
+            }
+        });
+    }
+});
+</script>
 {% endblock %}

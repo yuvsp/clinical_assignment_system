@@ -8,9 +8,11 @@
     <input type="file" name="file" class="form-control-file mb-2" required>
     <button type="submit" class="btn btn-warning">יבא רשומות קלינאיות</button>
 </form>
+<div class="table-container">
 <table class="table table-bordered" dir="rtl">
     <thead class="thead-light">
         <tr>
+            <th class="text-right vertical-header">קיבלה חוזה</th>
             <th class="text-right">שם</th>
             <th class="text-right">מקום תרגול</th>
             <th class="text-right">תחום התמחות</th>
@@ -21,13 +23,16 @@
             <th class="text-right">אימייל</th>
             <th class="text-right">ימים זמינים</th>
             <th class="text-right">יום אחד בלבד</th>
-            <th class="text-right vertical-header">מקס' סטודנטיות ביום</th>
-            <th class="text-right vertical-header">סמסטרים רלוונטיים</th>
+            <th class="text-right vertical-header">מקס' ביום</th>
+            <th class="text-right vertical-header">סמסטרים</th>
         </tr>
     </thead>
     <tbody>
         {% for instructor in instructors %}
         <tr>
+            <td class="{{ 'green' if instructor.has_contract else 'red' }}">
+                <input type="checkbox" {% if instructor.has_contract %}checked{% endif %} disabled>
+            </td>            
             <td class="text-right instructor-name" style="--instructor-color: {{ instructor.color }};">
                 <div class="instructor-color"></div>
                 {{ instructor.name }}
@@ -39,7 +44,9 @@
             <td class="text-right">{{ instructor.address }}</td>
             <td class="text-right">{{ instructor.phone }}</td>
             <td class="text-right email-text">{{ instructor.email }}</td>
-            <td class="text-right">{{ instructor.available_days_to_assign }}</td>
+            <td contenteditable="true" data-field="available_days_to_assign">{{ instructor.available_days_to_assign}}
+                <!-- {{ instructor.available_days_to_assign.replace('-לא-זמין-לא-זמין', ' חסום') | trim }} -->
+            </td>
             <td class="text-right">
                 {% if instructor.available_days_to_assign.split(',') | length > 1 %}
                     {{ 'כן' if instructor.single_assignment else 'לא' }}
@@ -51,4 +58,6 @@
         {% endfor %}
     </tbody>
 </table>
+</div>
+
 {% endblock %}

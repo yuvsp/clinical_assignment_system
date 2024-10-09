@@ -331,7 +331,8 @@ def download_instructors():
         'Available Days to Assign': instructor.available_days_to_assign,
         'Max Students Per Day': instructor.max_students_per_day,
         'Color': instructor.color,
-        'Single Assignment': instructor.single_assignment  # Include single_assignment in the data
+        'Single Assignment': instructor.single_assignment,
+        'Has Contract': instructor.has_contract  # Include the has_contract field
     } for instructor in instructors]
 
     df = pd.DataFrame(data)
@@ -501,7 +502,7 @@ def process_instructor_file(filepath):
     try:
         df = pd.read_excel(filepath)
         
-        required_columns = ['Name', 'Practice Location', 'Area of Expertise', 'City', 'Address', 'Phone', 'Email', 'Relevant Semesters', 'Years of Experience', 'Available Days to Assign', 'Max Students Per Day', 'Color', 'Single Assignment']
+        required_columns = ['Name', 'Practice Location', 'Area of Expertise', 'City', 'Address', 'Phone', 'Email', 'Relevant Semesters', 'Years of Experience', 'Available Days to Assign', 'Max Students Per Day', 'Color', 'Single Assignment', 'Has Contract']
         for col in required_columns:
             if col not in df.columns:
                 raise ValueError(f"Missing column: {col}")
@@ -515,6 +516,7 @@ def process_instructor_file(filepath):
             color = row.get('Color')
             if not color or not isinstance(color, str) or len(color) != 7 or not color.startswith('#'):
                 color = generate_color()
+                
             new_instructor = ClinicalInstructor(
                 name=row['Name'],
                 practice_location=row['Practice Location'],
@@ -528,7 +530,8 @@ def process_instructor_file(filepath):
                 available_days_to_assign=row['Available Days to Assign'],
                 max_students_per_day=row['Max Students Per Day'],
                 color=color,
-                single_assignment=row['Single Assignment'] if 'Single Assignment' in row and not pd.isnull(row['Single Assignment']) else False  # Include single_assignment
+                single_assignment=row['Single Assignment'] if 'Single Assignment' in row and not pd.isnull(row['Single Assignment']) else False,  # Handle single_assignment
+                has_contract=row['Has Contract'] if 'Has Contract' in row and not pd.isnull(row['Has Contract']) else False  # Handle has_contract
             )
             db.session.add(new_instructor)
         db.session.commit()
@@ -548,7 +551,7 @@ def remove_assignment(assignment_id):
 def assignments_view():
     semester = request.args.get('semester', 'א')  # Default to semester 'א'
     students = Student.query.filter_by(semester=semester).all()
-    days_of_week = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי']
+    days_of_week = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי']
     
     # Create a dictionary for assignments data
     assignments_data = {student.name: {day: None for day in days_of_week} for student in students}
@@ -647,7 +650,7 @@ from datetime import datetime
 @bp.route('/download_assignments_view')
 def download_assignments_view():
     students = Student.query.all()
-    days_of_week = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי']
+    days_of_week = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי']
 
     assignments_data = {student.name: {day: None for day in days_of_week} for student in students}
     instructor_colors = {instructor.name: instructor.color for instructor in ClinicalInstructor.query.all()}
@@ -803,6 +806,9 @@ def editable_instructors():
                     old_single_assignment = instructor.single_assignment
                     instructor.single_assignment = instructor_data['single_assignment']
                     
+                    # New has_contract field update
+                    instructor.has_contract = instructor_data.get('has_contract', False)  # Default to False if not provided
+
                     # If single_assignment changed from True to False, clear the suffix
                     if old_single_assignment and not instructor.single_assignment:
                         original_days = [day.replace('-לא-זמין', '') for day in instructor.available_days_to_assign.split(',')]
