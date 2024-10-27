@@ -10,6 +10,11 @@ from datetime import datetime
 from collections import defaultdict
 import random
 import base64
+from flask_login import login_user, login_required, logout_user, current_user
+from werkzeug.security import check_password_hash
+from .models import User
+
+
 
 # def generate_color():
 #     r = lambda: random.randint(0, 255)
@@ -883,4 +888,28 @@ def download_pdf(student_id):
     pdf = generate_student_pdf(student)
     return send_file(pdf, download_name=f"שיבוצים שפה ודיבור {student.name}.pdf", as_attachment=True)
 
+
+# Login route
+@bp.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        user = User.query.filter_by(username=username).first()
+
+        if user and check_password_hash(user.password, password):
+            login_user(user)
+            return redirect(url_for('main.index'))  # Adjust with your landing page
+        else:
+            flash('Invalid username or password', 'danger')
+
+    return render_template('login.html')
+
+# Logout route
+@bp.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    flash('You have been logged out.', 'success')
+    return redirect(url_for('main.login'))
 

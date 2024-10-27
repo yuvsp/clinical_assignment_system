@@ -7,3 +7,5 @@ openpyxl
 gunicorn
 pydrive
 reportlab
+Flask-Login
+Flask-WTF
