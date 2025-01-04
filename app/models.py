@@ -47,3 +47,31 @@ class Field(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     color = db.Column(db.String(7), nullable=False, default='#FFFFFF')  # Default to white
+
+
+
+############################################################################
+class ArchivedSnapshot(db.Model):
+    __tablename__ = 'archived_snapshot'
+    id = db.Column(db.Integer, primary_key=True)
+    snapshot_name = db.Column(db.String(100), nullable=False)
+    created_at = db.Column(db.DateTime, nullable=False)
+
+    assignments = db.relationship('ArchivedAssignment', backref='snapshot', lazy=True)
+
+class ArchivedAssignment(db.Model):
+    __tablename__ = 'archived_assignment'
+    id = db.Column(db.Integer, primary_key=True)
+
+    snapshot_id = db.Column(db.Integer, db.ForeignKey('archived_snapshot.id'), nullable=False)
+    
+    assigned_day = db.Column(db.String(20), nullable=False)
+    # year_semester = db.Column(db.String(10), nullable=False)
+    
+    student_name = db.Column(db.String(100), nullable=False)
+    student_email = db.Column(db.String(100), nullable=False)
+    preferred_practice_area = db.Column(db.String(100))
+
+    instructor_name = db.Column(db.String(100), nullable=False)
+    instructor_practice_location = db.Column(db.String(100), nullable=False)
+    instructor_field_name = db.Column(db.String(100))

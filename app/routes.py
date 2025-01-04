@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, send_file, jsonify, flash
 from werkzeug.utils import secure_filename
 from app import db
-from app.models import ClinicalInstructor, Student, Assignment, Field
+from app.models import ClinicalInstructor, Student, Assignment, Field, ArchivedSnapshot, ArchivedAssignment
 from app.pdf_utils import generate_student_pdf
 import pandas as pd
 import io
@@ -889,4 +889,118 @@ def download_pdf(student_id):
     pdf = generate_student_pdf(student)
     return send_file(pdf, download_name=f"שיבוצים שפה ודיבור {student.name}.pdf", as_attachment=True)
 
+#########################################
+@bp.route('/archive_assignments', methods=['POST'])
+def archive_assignments():
+    user_snapshot_name = request.form['snapshot_name'].strip()
+    if not user_snapshot_name:
+        flash("Snapshot name cannot be empty.", "danger")
+        return redirect(url_for('main.current_assignments_table'))
 
+    now_str = datetime.now().strftime("%d_%m_%y_%H_%M")
+    snapshot_full_name = f"{user_snapshot_name}"#_{now_str}"
+
+    # Create a new ArchivedSnapshot
+    snapshot = ArchivedSnapshot(
+        snapshot_name=snapshot_full_name,
+        created_at=datetime.now()
+    )
+    db.session.add(snapshot)
+    db.session.commit()  # get snapshot.id
+
+    # Gather current assignments (customize as needed if you want to filter)
+    students = Student.query.all()
+    student_ids = [s.id for s in students]
+    assignments = Assignment.query.filter(Assignment.student_id.in_(student_ids)).all()
+
+    # For each current assignment, create an ArchivedAssignment row
+    for assignment in assignments:
+        student = assignment.student
+        instructor = assignment.instructor
+
+        field_name = ""
+        if instructor and instructor.area_of_expertise:
+            field_name = instructor.area_of_expertise.name
+
+        archived_row = ArchivedAssignment(
+            snapshot_id=snapshot.id,
+            assigned_day=assignment.assigned_day,
+            
+            # We removed 'year_semester' references entirely.
+            # If your ArchivedAssignment still has a year_semester column, 
+            # you can set it to a default or remove the column from the model.
+
+            student_name=student.name,
+            student_email=student.email,
+            preferred_practice_area=student.preferred_practice_area,
+
+            instructor_name=instructor.name if instructor else "N/A",
+            instructor_practice_location=instructor.practice_location if instructor else "N/A",
+            instructor_field_name=field_name
+        )
+        db.session.add(archived_row)
+
+    db.session.commit()
+
+    flash(f"Archived {len(assignments)} assignments under '{snapshot_full_name}'.", "success")
+    return redirect(url_for('main.current_assignments_table'))
+
+@bp.route('/historic_assignments')
+def historic_assignments():
+    snapshots = ArchivedSnapshot.query.order_by(ArchivedSnapshot.created_at.desc()).all()
+    
+    snapshot_id = request.args.get('snapshot_id')
+    selected_snapshot = None
+    archived_assignments = []
+    
+    if snapshot_id:
+        selected_snapshot = ArchivedSnapshot.query.get(snapshot_id)
+        if selected_snapshot:
+            archived_assignments = selected_snapshot.assignments
+        else:
+            flash("Snapshot not found.", "danger")
+    
+    grouped_by_student = {}
+
+    for arch in archived_assignments:
+        sname = arch.student_name
+        if sname not in grouped_by_student:
+            # We can skip the "allocation" logic since we removed year_semester
+            # or just default to 'שפה' or something generic:
+            allocation = "שפה"
+            
+            grouped_by_student[sname] = {
+                'name': arch.student_name,
+                'email': arch.student_email,
+                'preferred_fields': ["?", "?", "?"],  # or omit entirely
+                'allocation': allocation,
+                'assignments': []
+            }
+        
+        # Attempt to find the current instructor by name
+        instructor_obj = None
+        if arch.instructor_name:
+            instructor_obj = ClinicalInstructor.query.filter_by(name=arch.instructor_name).first()
+        
+        color_to_use = instructor_obj.color if instructor_obj else "gray"
+
+        grouped_by_student[sname]['assignments'].append({
+            'assigned_day': arch.assigned_day,
+            'instructor': {
+                'name': arch.instructor_name,
+                'practice_location': arch.instructor_practice_location,
+                'color': color_to_use
+            }
+        })
+    
+    archived_student_assignments = list(grouped_by_student.values())
+    archived_student_assignments.sort(
+    key=lambda student: student['name'].split()[0]
+)
+
+    return render_template(
+        'historic_assignments_table.html',
+        snapshots=snapshots,
+        selected_snapshot=selected_snapshot,
+        archived_student_assignments=archived_student_assignments
+    )
