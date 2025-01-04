@@ -7,9 +7,41 @@
     <form action="{{ url_for('main.import_backup_excel') }}" method="post" enctype="multipart/form-data" class="d-inline">
         <input type="file" name="file" class="form-control-file d-inline-block mb-2" required>
         <button type="submit" class="btn btn-warning">ייבא גיבוי אקסל</button>
+        <!-- Some button that triggers a modal or a small form -->
+  
     </form>
     <a href="{{ url_for('main.export_backup_excel') }}" class="btn btn-secondary">ייצא גיבוי אקסל</a>
 </div>
+<button type="button" class="btn btn-info" data-toggle="modal" data-target="#archiveModal">
+ארכוב שיבוצים
+  </button>
+  
+  <!-- Modal to gather "snapshot name" -->
+  <div class="modal fade" id="archiveModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+      <form method="POST" action="{{ url_for('main.archive_assignments') }}">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">ארכוב תמונת שיבוצים להיסטוריה</h5>
+            <!-- <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">×</span>
+            </button> -->
+          </div>
+          <div class="modal-body">
+            <label>שם לארכיון</label>
+            <input type="text" name="snapshot_name" class="form-control" required>
+            <p class="text-muted" style="font-size: 0.9em;">
+              <!-- A timestamp will be added automatically (e.g., "_03_01_25_13_45"). -->
+            </p>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">ביטול</button>
+            <button type="submit" class="btn btn-primary">אירכוב</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
 
 <table class="table table-bordered mb-4 current-assignments-table" dir="rtl" style="table-layout: fixed; width: 100%;">
     <thead class="thead-light">

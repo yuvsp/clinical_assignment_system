@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1 class="mb-4 text-right">היסטוריית שיבוצים</h1>
+
+     <form method="GET" action="{{ url_for('main.historic_assignments') }}" class="text-center mb-3">
+      <label for="snapshot_id">בחר ארכיון:</label>
+      <select name="snapshot_id" id="snapshot_id" onchange="this.form.submit()">
+        <option value="">-- בחירה --</option>
+        {% for snap in snapshots %}
+          <option value="{{ snap.id }}" {% if selected_snapshot and snap.id == selected_snapshot.id %}selected{% endif %}>
+            {{ snap.snapshot_name }} (נוצר בתאריך {{ snap.created_at.strftime("%d/%m/%y %H:%M") }})
+          </option>
+        {% endfor %}
+      </select>
+    </form>
+
+    <hr>
+ 
+<!-- The Table Layout, almost identical to current_assignments_table -->
+<table class="table table-bordered mb-4" dir="rtl" style="table-layout: fixed; width: 100%;">
+    <thead class="thead-light">
+        <tr>
+            <th class="text-right">שם הסטודנט</th>
+            <th class="text-center">ראשון</th>
+            <th class="text-center">שני</th>
+            <th class="text-center">שלישי</th>
+            <th class="text-center">רביעי</th>
+            <th class="text-center">חמישי</th>
+            <th class="text-center">שישי</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for student_data in archived_student_assignments %}
+        <tr>
+            <td class="text-right">
+                <!-- Display the student's name and other info (read-only) -->
+                {% set assigned_count = student_data.assignments|length %}
+                {% if assigned_count == 3 %}
+                    <span style="color: green;"></span>
+                {% endif %}
+                {{ student_data.name }}
+                <br>
+                <small style="font-size: 65%;">
+                    {{ student_data.email }}
+                </small>
+                <br>
+                <small>
+                    <!-- 1. {{ student_data.preferred_fields[0] }}<br>
+                    2. {{ student_data.preferred_fields[1] }}<br>
+                    3. {{ student_data.preferred_fields[2] }} -->
+                </small>
+            </td>
+
+            {% if student_data.allocation == 'אודיו ושיקום' %}
+                <!-- If allocation is אודיו ושיקום, show only one cell (no editing) -->
+                <td class="text-center" colspan="6">אודיו ושיקום</td>
+            {% else %}
+                {% set days_of_week = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי'] %}
+                {% for day in days_of_week %}
+                {% set assignment = student_data.assignments|selectattr('assigned_day','equalto',day)|first() %}
+                <td class="text-center {% if student_assignments_count == 3 %}beige-background{% endif %}">
+                    {% if assignment %}
+                      {% set instructor = assignment.instructor %}
+                      <div style="border: 1px solid; font-size: 14px; max-width: 140px; 
+                                  padding: 4px 4px; background-color: {{ instructor.color }};
+                                  border-radius: 4px; margin: 4px auto 0; text-align: center;
+                                  height: 34px; display: flex; justify-content: center; align-items: center;">
+                         {{ instructor.name }} 
+                         ב{{ instructor.practice_location }}
+                      </div>
+                    {% else %}
+                      <div style="height: 34px; display: flex; align-items: center; justify-content: center;">
+                         
+                      </div>
+                    {% endif %}
+                </td>
+              {% endfor %}              
+            {% endif %}
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<style>
+/* Reuse or copy the styling from current_assignments_table.html as needed */
+.beige-background {
+    background-color: #f5f5dc;
+}
+</style>
+{% endblock %}
