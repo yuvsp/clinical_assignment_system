@@ -78,12 +78,12 @@ def generate_student_pdf(student):
         city = reverse_text(instructor.city) if instructor else ""
         # start_date = reverse_text(assignment.assigned_day)
         day = reverse_text(assignment.assigned_day)
-        expertise  = "4" # reverse_text(instructor.area_of_expertise) if instructor else ""
+        expertise = reverse_text(instructor.area_of_expertise.name) if instructor and instructor.area_of_expertise else ""
 
         data.append([contact_info, instructor_name, " (" + expertise +") " + city + " ," + place  , day])
 
     # Creating the table with the data
-    table = Table(data, colWidths=[100, 100, 200, 100, 100]) 
+    table = Table(data, colWidths=[90, 90, 220, 90, 90]) 
     table.setStyle(TableStyle([
         # Header background color
         ('BACKGROUND', (0, 0), (-1, 0), colors.Color(red=63/255, green=64/255, blue=66/255, alpha=1.0)),
