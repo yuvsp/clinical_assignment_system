@@ -75,25 +75,27 @@ def generate_student_pdf(student):
         instructor_name = reverse_text(instructor.name) if instructor else ""
         contact_info = format_phone_number(instructor.phone) if instructor else ""  # Format the phone number
         place = reverse_text(instructor.practice_location) if instructor else ""
+        city = reverse_text(instructor.city) if instructor else ""
         # start_date = reverse_text(assignment.assigned_day)
         day = reverse_text(assignment.assigned_day)
+        expertise  = "4" # reverse_text(instructor.area_of_expertise) if instructor else ""
 
-        data.append([contact_info, instructor_name, place, day])
+        data.append([contact_info, instructor_name, " (" + expertise +") " + city + " ," + place  , day])
 
     # Creating the table with the data
-    table = Table(data, colWidths=[100, 100, 100, 100, 100])
+    table = Table(data, colWidths=[100, 100, 200, 100, 100]) 
     table.setStyle(TableStyle([
         # Header background color
         ('BACKGROUND', (0, 0), (-1, 0), colors.Color(red=63/255, green=64/255, blue=66/255, alpha=1.0)),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('FONTNAME', (0, 0), (-1, -1), 'FreeSans'),  # Ensure the font is set for the entire table
-        ('FONTSIZE', (0, 0), (-1, 0), 12),
+        ('FONTSIZE', (0, 0), (-1, 0), 12), 
         ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
         # Row background colors alternating - 1st and 3rd rows the same
-        ('BACKGROUND', (0, 1), (-1, 1), colors.Color(red=100/255, green=206/255, blue=221/255, alpha=1.0)),
+        ('BACKGROUND', (0, 1), (-1, 1), colors.Color(red=253/255, green=191/255, blue=64/255, alpha=1.0)),
         ('BACKGROUND', (0, 2), (-1, 2), colors.Color(red=242/255, green=250/255, blue=250/255, alpha=1.0)),
-        ('BACKGROUND', (0, 3), (-1, 3), colors.Color(red=100/255, green=206/255, blue=221/255, alpha=1.0)),
+        ('BACKGROUND', (0, 3), (-1, 3), colors.Color(red=253/255, green=191/255, blue=64/255, alpha=1.0)),
         ('TEXTCOLOR', (0, 1), (-1, -1), colors.black),
         ('GRID', (0, 0), (-1, -1), 1, colors.black),
     ]))
@@ -113,9 +115,9 @@ def generate_student_pdf(student):
     # Spacer between table and footer
     elements.append(Spacer(1, 200))
 
-    # Footer Image - 65% of the page's width
+    # Footer Image - 85% of the page's width
     footer = Image("logos/footer.png")
-    footer_width = 0.65 * page_width
+    footer_width = 0.85 * page_width
     footer_height = footer_width * footer.imageHeight / footer.imageWidth  # Maintain aspect ratio
     footer.drawWidth = footer_width
     footer.drawHeight = footer_height
