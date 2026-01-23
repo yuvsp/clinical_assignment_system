@@ -1047,8 +1047,7 @@ def archive_assignments():
         flash("Snapshot name cannot be empty.", "danger")
         return redirect(url_for('main.current_assignments_table'))
 
-    now_str = datetime.now().strftime("%d_%m_%y_%H_%M")
-    snapshot_full_name = f"{user_snapshot_name}"#_{now_str}"
+    snapshot_full_name = f"{user_snapshot_name}"
 
     # Create a new ArchivedSnapshot
     snapshot = ArchivedSnapshot(
@@ -1058,15 +1057,18 @@ def archive_assignments():
     db.session.add(snapshot)
     db.session.commit()  # get snapshot.id
 
-    # Gather current assignments (customize as needed if you want to filter)
+    # Gather current assignments
     students = Student.query.all()
     student_ids = [s.id for s in students]
     assignments = Assignment.query.filter(Assignment.student_id.in_(student_ids)).all()
 
-    # For each current assignment, create an ArchivedAssignment row
+    # Archive rows
+    affected_instructor_ids = set()
     for assignment in assignments:
         student = assignment.student
         instructor = assignment.instructor
+        if instructor:
+            affected_instructor_ids.add(instructor.id)
 
         field_name = ""
         if instructor and instructor.area_of_expertise:
@@ -1075,24 +1077,34 @@ def archive_assignments():
         archived_row = ArchivedAssignment(
             snapshot_id=snapshot.id,
             assigned_day=assignment.assigned_day,
-            
-            # We removed 'year_semester' references entirely.
-            # If your ArchivedAssignment still has a year_semester column, 
-            # you can set it to a default or remove the column from the model.
-
             student_name=student.name,
             student_email=student.email,
             preferred_practice_area=student.preferred_practice_area,
-
             instructor_name=instructor.name if instructor else "N/A",
             instructor_practice_location=instructor.practice_location if instructor else "N/A",
             instructor_field_name=field_name
         )
         db.session.add(archived_row)
 
+    # Commit archived rows first
     db.session.commit()
 
-    flash(f"Archived {len(assignments)} assignments under '{snapshot_full_name}'.", "success")
+    # NEW: clear current assignments after archiving
+    for assignment in assignments:
+        db.session.delete(assignment)
+    db.session.commit()
+
+    # Restore availability for single-assignment instructors if needed
+    for instructor_id in affected_instructor_ids:
+        instructor = ClinicalInstructor.query.get(instructor_id)
+        if instructor and instructor.single_assignment:
+            _restore_single_assignment_availability_if_needed(instructor)
+    db.session.commit()
+
+    flash(
+        f"Archived {len(assignments)} assignments under '{snapshot_full_name}' and cleared current assignments.",
+        "success"
+    )
     return redirect(url_for('main.current_assignments_table'))
 
 @bp.route('/historic_assignments')
