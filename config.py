@@ -1,52 +1,74 @@
 import os
-import platform
-from urllib.parse import urlparse, urlunparse, parse_qsl, urlencode
+from urllib.parse import urlparse, parse_qsl, urlencode, urlunparse
 
-def _normalize_database_url(url: str) -> str:
+basedir = os.path.abspath(os.path.dirname(__file__))
+
+
+def _normalize_database_url(raw_url: str) -> str:
     """
-    Normalizes DATABASE_URL for SQLAlchemy + Postgres providers (e.g., Supabase).
-
-    - Converts legacy 'postgres://' to 'postgresql://'
-    - Ensures sslmode=require for Supabase/managed Postgres when not specified
+    Normalizes DB URLs for SQLAlchemy and cloud providers.
+    - Converts postgres:// to postgresql://
+    - Ensures sslmode=require for Supabase/hosted Postgres unless already set
     """
-    if not url:
-        return url
+    if not raw_url:
+        return raw_url
 
-    # Heroku-style URLs sometimes start with postgres://
-    if url.startswith("postgres://"):
-        url = "postgresql://" + url[len("postgres://"):]
+    # SQLAlchemy prefers "postgresql://"
+    if raw_url.startswith("postgres://"):
+        raw_url = "postgresql://" + raw_url[len("postgres://") :]
 
-    # Add sslmode=require for Supabase if missing
-    try:
-        parsed = urlparse(url)
-        host = parsed.hostname or ""
-        if ("supabase.com" in host) or (host.endswith(".supabase.co")):
-            q = dict(parse_qsl(parsed.query, keep_blank_values=True))
-            if "sslmode" not in q:
-                q["sslmode"] = "require"
-                parsed = parsed._replace(query=urlencode(q))
-                url = urlunparse(parsed)
-    except Exception:
-        # If parsing fails, just return the original URL
-        return url
+    # Add sslmode=require when using Postgres unless already set
+    if raw_url.startswith("postgresql://"):
+        parts = urlparse(raw_url)
+        query = dict(parse_qsl(parts.query, keep_blank_values=True))
+        query.setdefault("sslmode", "require")
+        parts = parts._replace(query=urlencode(query))
+        raw_url = urlunparse(parts)
 
-    return url
+    return raw_url
+
+
+def _is_supabase_pooler(url: str) -> bool:
+    """
+    Heuristic: Supabase pooler host typically contains 'pooler.supabase.com'
+    and often uses port 6543 (transaction pooler).
+    """
+    if not url or not url.startswith("postgresql://"):
+        return False
+
+    parts = urlparse(url)
+    host = (parts.hostname or "").lower()
+    port = parts.port
+    return ("pooler.supabase.com" in host) or (port == 6543)
+
 
 class Config:
-    BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+    SECRET_KEY = os.environ.get("SECRET_KEY", "dev-secret-change-me")
 
-    # Prefer DATABASE_URL (Postgres/Supabase). Fallback to SQLite.
-    if platform.system() == "Windows":
-        default_sqlite = f"sqlite:///{os.path.join(BASE_DIR, 'clinical_assignment.db')}"
+    # If DATABASE_URL is set (Render env var), use it. Otherwise fallback to local sqlite.
+    _raw_db_url = os.environ.get("DATABASE_URL")
+    _db_url = _normalize_database_url(_raw_db_url) if _raw_db_url else None
+
+    if _db_url:
+        SQLALCHEMY_DATABASE_URI = _db_url
     else:
-        default_sqlite = "sqlite:////data/clinical_assignment.db"
+        # Local fallback (Linux/Render disk path not needed if using Supabase)
+        SQLALCHEMY_DATABASE_URI = f"sqlite:///{os.path.join(basedir, 'clinical_assignment.db')}"
 
-    SQLALCHEMY_DATABASE_URI = _normalize_database_url(os.getenv("DATABASE_URL", default_sqlite))
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
-    # Helps long-running connections and managed Postgres
-    SQLALCHEMY_ENGINE_OPTIONS = {
-        "pool_pre_ping": True,
-    }
+    # Engine options:
+    # - For Supabase pooler (transaction mode): let Supavisor pool; disable SQLAlchemy pooling (NullPool).
+    # - For other Postgres: use pre_ping to avoid stale connections.
+    if _db_url and _is_supabase_pooler(_db_url):
+        # Import inside to avoid dependency issues when running sqlite-only locally
+        from sqlalchemy.pool import NullPool
 
-    SECRET_KEY = os.getenv("SECRET_KEY", os.urandom(24))
+        SQLALCHEMY_ENGINE_OPTIONS = {
+            "poolclass": NullPool,
+            "pool_pre_ping": True,
+        }
+    else:
+        SQLALCHEMY_ENGINE_OPTIONS = {
+            "pool_pre_ping": True,
+        }
