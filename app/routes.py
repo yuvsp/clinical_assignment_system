@@ -844,6 +844,71 @@ def process_fields_file(filepath):
 
     db.session.commit()
 
+
+# -----------------------------
+# Backup import/export (Excel)
+# -----------------------------
+@bp.route('/export_backup_excel')
+def export_backup_excel():
+    """Export assignments to an Excel file (used by current_assignments_table UI)."""
+    timestamp = datetime.now().strftime("%d_%m_%y_%H_%M")
+    filename = f"assignments_backup_{timestamp}.xlsx"
+
+    assignments = Assignment.query.all()
+    data = []
+    for assignment in assignments:
+        student_name = assignment.student.name if assignment.student else ''
+        instructor = assignment.instructor
+        instructor_name = instructor.name if instructor else ''
+        instructor_field = ''
+        practice_location = ''
+        if instructor:
+            practice_location = instructor.practice_location or ''
+            if instructor.area_of_expertise:
+                instructor_field = instructor.area_of_expertise.name
+
+        data.append({
+            'Student Name': student_name,
+            'Instructor Name': instructor_name,
+            'Assigned Day': assignment.assigned_day,
+            'Instructor Field': instructor_field,
+            'Practice Location': practice_location,
+        })
+
+    df = pd.DataFrame(data)
+    output = io.BytesIO()
+    writer = pd.ExcelWriter(output, engine='xlsxwriter')
+    df.to_excel(writer, index=False, sheet_name='Assignments')
+    writer.close()
+    output.seek(0)
+
+    return send_file(output, download_name=filename, as_attachment=True)
+
+
+@bp.route('/import_backup_excel', methods=['POST'])
+def import_backup_excel():
+    """Import assignments from an Excel backup file."""
+    if 'file' not in request.files:
+        flash('No file part')
+        return redirect(url_for('main.current_assignments_table'))
+
+    file = request.files['file']
+    if file.filename == '':
+        flash('No selected file')
+        return redirect(url_for('main.current_assignments_table'))
+
+    if file and allowed_file(file.filename):
+        os.makedirs('uploads', exist_ok=True)
+        filename = secure_filename(file.filename)
+        filepath = os.path.join('uploads', filename)
+        file.save(filepath)
+        process_backup_file(filepath)
+        flash('Backup imported successfully')
+        return redirect(url_for('main.current_assignments_table'))
+
+    flash('Invalid file format')
+    return redirect(url_for('main.current_assignments_table'))
+
 def process_backup_file(filepath):
     df = pd.read_excel(filepath)
 
