@@ -29,6 +29,24 @@ def generate_color():
 
 bp = Blueprint('main', __name__)
 
+
+# -----------------------------
+# Helpers for assignment actions
+# -----------------------------
+def _restore_single_assignment_availability_if_needed(instructor: ClinicalInstructor):
+    """If a single-assignment instructor has no remaining assignments, restore their original days list."""
+    if not instructor or not instructor.single_assignment:
+        return
+    remaining_assignments = Assignment.query.filter_by(instructor_id=instructor.id).count()
+    if remaining_assignments == 0:
+        original_days = [day.replace('-לא-זמין', '') for day in instructor.available_days_to_assign.split(',')]
+        instructor.available_days_to_assign = ','.join(original_days)
+        db.session.add(instructor)
+
+
+def _json_error(message: str, status_code: int = 400):
+    return jsonify({'success': False, 'reason': message}), status_code
+
 UPLOAD_FOLDER = 'uploads'
 ALLOWED_EXTENSIONS = {'xlsx'} 
 
@@ -42,6 +60,106 @@ def allowed_file(filename):
 def main_view():
     return redirect(url_for('main.current_assignments_table'))  # Redirect home to current assignments
 
+
+
+# -----------------------------
+# JSON API for Drag & Drop (current assignments table)
+# -----------------------------
+@bp.route('/api/assignments/<int:assignment_id>', methods=['DELETE'])
+def api_delete_assignment(assignment_id):
+    assignment = Assignment.query.get_or_404(assignment_id)
+    instructor = assignment.instructor
+
+    db.session.delete(assignment)
+    db.session.commit()
+
+    _restore_single_assignment_availability_if_needed(instructor)
+    db.session.commit()
+
+    return jsonify({'success': True, 'deleted_assignment_id': assignment_id})
+
+
+@bp.route('/api/assignments/<int:assignment_id>/reassign', methods=['POST'])
+def api_reassign_assignment(assignment_id):
+    """Move an existing assignment (same instructor + same day) to a different student.
+
+    IMPORTANT: This endpoint enforces the same rules as the existing UI:
+    - Target student must be a 'שפה' student (semester א)
+    - Instructor must be in one of the student's 3 preferred fields
+    - Target student must not already have an assignment on that day
+    - Instructor must not be full for that day
+    - Instructor must have that day available (not '-לא-זמין')
+    """
+    data = request.get_json(silent=True) or {}
+    to_student_id = data.get('to_student_id')
+
+    try:
+        to_student_id = int(to_student_id)
+    except (TypeError, ValueError):
+        return _json_error('חסר או לא תקין: to_student_id')
+
+    assignment = Assignment.query.get_or_404(assignment_id)
+
+    # Guard: do not allow moving the special "אודיו ושיקום" placeholder assignment
+    if assignment.instructor_id == 501:
+        return _json_error('לא ניתן להעביר שיבוץ "אודיו ושיקום" בגרירה', 400)
+
+    instructor = assignment.instructor
+    if not instructor or not instructor.area_of_expertise:
+        return _json_error('נתוני קלינאית לא תקינים לשיבוץ זה', 400)
+
+    target_student = Student.query.get(to_student_id)
+    if not target_student:
+        return _json_error('סטודנטית לא נמצאה', 404)
+
+    # Only allow moving to "שפה" students (semester א)
+    allocation = 'שפה' if target_student.semester == 'א' else 'אודיו ושיקום'
+    if allocation != 'שפה':
+        return _json_error('לא ניתן להעביר שיבוץ לסטודנטית שאינה בסמסטר א (שפה)', 400)
+
+    # Prefered fields check (exactly like existing logic)
+    preferred_fields = [
+        target_student.preferred_field_1.name if target_student.preferred_field_1 else '',
+        target_student.preferred_field_2.name if target_student.preferred_field_2 else '',
+        target_student.preferred_field_3.name if target_student.preferred_field_3 else ''
+    ]
+    if instructor.area_of_expertise.name not in preferred_fields:
+        return _json_error('תחום הקלינאית אינו אחד משלושת תחומי ההעדפה של הסטודנטית', 400)
+
+    day = assignment.assigned_day
+
+    # Student must not already have an assignment on that day
+    existing_same_day = Assignment.query.filter_by(student_id=to_student_id, assigned_day=day).first()
+    if existing_same_day:
+        return _json_error('לסטודנטית כבר יש שיבוץ ביום זה', 400)
+
+    # Instructor must not be full (count includes this assignment already, so it should still be <= max)
+    assigned_count = Assignment.query.filter_by(instructor_id=instructor.id, assigned_day=day).count()
+    if assigned_count > instructor.max_students_per_day:
+        return _json_error('הקלינאית מלאה ביום זה', 400)
+
+    # Day must be available (not marked as unavailable)
+    available_days = instructor.available_days_to_assign.split(',') if instructor.available_days_to_assign else []
+    for d in available_days:
+        if d.replace('-לא-זמין', '') == day and 'לא-זמין' in d:
+            return _json_error('היום הזה אינו זמין אצל הקלינאית', 400)
+
+    # Perform move
+    assignment.student_id = to_student_id
+    db.session.add(assignment)
+    db.session.commit()
+
+    return jsonify({
+        'success': True,
+        'assignment': {
+            'id': assignment.id,
+            'assigned_day': assignment.assigned_day,
+            'instructor_id': assignment.instructor_id,
+            'instructor_name': instructor.name,
+            'practice_location': instructor.practice_location,
+            'student_id': assignment.student_id
+        }
+    })
 @bp.route('/current_assignments')
 def current_assignments():
     semester = request.args.get('semester', 'א')  # Default to semester 'א'
@@ -540,11 +658,25 @@ def process_instructor_file(filepath):
         flash(str(e), 'danger')
         db.session.rollback()
 
-@bp.route('/remove_assignment/<int:assignment_id>', methods=['POST']) 
+@bp.route('/remove_assignment/<int:assignment_id>', methods=['POST'])
 def remove_assignment(assignment_id):
+    """Legacy endpoint used by the HTML form button in current_assignments_table.
+    Keeps behavior but also restores availability for single_assignment instructors when needed.
+    """
     assignment = Assignment.query.get_or_404(assignment_id)
+    instructor = assignment.instructor
     db.session.delete(assignment)
     db.session.commit()
+
+    # Restore availability if all assignments are canceled (single_assignment instructors)
+    if instructor and instructor.single_assignment:
+        remaining_assignments = Assignment.query.filter_by(instructor_id=instructor.id).count()
+        if remaining_assignments == 0:
+            original_days = [day.replace('-לא-זמין', '') for day in instructor.available_days_to_assign.split(',')]
+            instructor.available_days_to_assign = ','.join(original_days)
+            db.session.add(instructor)
+            db.session.commit()
+
     return redirect(url_for('main.current_assignments_table'))
 
 @bp.route('/assignments_view')

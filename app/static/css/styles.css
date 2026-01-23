@@ -461,3 +461,39 @@ th, td {
     overflow-x: scroll;
     -webkit-overflow-scrolling: touch; /* Smooth scrolling for iOS */
 }
+
+
+
+/* =========================
+   Mobile responsiveness tweaks
+   ========================= */
+@media (max-width: 768px) {
+    .container, .container-fluid {
+        padding-left: 10px;
+        padding-right: 10px;
+    }
+
+    h1, h2, h3 {
+        font-size: 1.25rem;
+    }
+
+    .btn {
+        font-size: 0.9rem;
+    }
+
+    /* Prevent long tables from breaking layout */
+    .table {
+        margin-bottom: 0.75rem;
+    }
+
+    .current-assignments-table th,
+    .current-assignments-table td {
+        padding: 0.35rem;
+        vertical-align: top;
+    }
+
+    /* Make file input and export buttons wrap nicely */
+    form.d-inline, a.btn {
+        margin-bottom: 6px;
+    }
+}

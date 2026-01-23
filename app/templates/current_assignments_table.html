@@ -43,6 +43,8 @@
     </div>
   </div>
 
+<div id="dnd-alert-container" class="mb-3"></div>
+<div class="table-scroll">
 <table class="table table-bordered mb-4 current-assignments-table" dir="rtl" style="table-layout: fixed; width: 100%;">
     <thead class="thead-light">
         <tr>
@@ -57,8 +59,8 @@
     </thead>
     <tbody>
         {% for student_data in student_assignments %}
-        <tr>
-            <td class="text-right">
+        <tr class="student-row" data-student-id="{{ student_data.id }}">
+            <td class="text-right student-name-cell" data-student-id="{{ student_data.id }}">
                 <div style="position: relative; padding-left: 50px;">
                     <div style="position: absolute; top: 0; left: 0; display: flex; gap: 2px;">
                         <button class="btn btn-icon" onclick="printToPDF('{{ student_data.id }}')" title="ייצוא PDF">
@@ -96,14 +98,14 @@
                 {% set student_assignments_count = student_assignments_list|length %}
                 
                 {% for day in days_of_week %}
-                <td class="text-center {% if student_assignments_count == 3 %}beige-background{% endif %}">
+                <td class="text-center {% if student_assignments_count == 3 %}beige-background{% endif %}" data-day="{{ day }}">
                     {% set assignment = student_data.assignments|selectattr('assigned_day', 'equalto', day)|first() %}
                     {% if assignment %}
                         {% set instructor = assignment.instructor %}
                         <form method="post" action="{{ url_for('main.remove_assignment', assignment_id=assignment.id) }}" >
                             <button type="submit" class="btn btn-cancel">ביטול</button>
                         </form>
-                        <div style="border: 1px solid;font-size: 14px;max-width: 140px; padding: 4px 4px ;background-color: {{ instructor_colors[instructor.name] }};border-radius: 4px;display: inline-block;  margin: 4px auto 0; text-align: center; height: 34px;justify-content: center;align-items: center;display: flex;">
+                        <div class="assignment-card" draggable="true" data-assignment-id="{{ assignment.id }}" data-from-student-id="{{ student_data.id }}" data-day="{{ day }}" style="background-color: {{ instructor_colors[instructor.name] }};">
                              {{ instructor.name if instructor else '' }}
                             ב{{ instructor.practice_location if instructor else '' }}  
                         </div>
@@ -126,6 +128,11 @@
         {% endfor %}
     </tbody>
 </table>
+</div>
+
+<div id="trash-dropzone" class="trash-dropzone" aria-label="גרור לכאן כדי לבטל שיבוץ">
+    <span>🗑️ גרור לכאן כדי לבטל שיבוץ</span>
+</div>
 
 <style>
 .btn-icon {
@@ -170,6 +177,84 @@
 .student:hover .instructors-tooltip {
     visibility: visible;
 }
+
+/* --- Drag & Drop --- */
+.assignment-card {
+    border: 1px solid rgba(0,0,0,0.35);
+    font-size: 14px;
+    max-width: 140px;
+    padding: 6px 6px;
+    border-radius: 6px;
+    display: inline-flex;
+    gap: 6px;
+    margin: 6px auto 0;
+    text-align: center;
+    min-height: 38px;
+    align-items: center;
+    justify-content: center;
+    cursor: grab;
+    user-select: none;
+}
+
+.assignment-card:active {
+    cursor: grabbing;
+}
+
+.student-row.drag-over {
+    outline: 2px dashed rgba(0, 123, 255, 0.8);
+    outline-offset: -2px;
+}
+
+.trash-dropzone {
+    position: sticky;
+    bottom: 0;
+    width: 100%;
+    padding: 12px 10px;
+    background: #fff3cd;
+    border: 1px dashed #d39e00;
+    border-radius: 10px;
+    text-align: center;
+    font-weight: 600;
+    margin-top: 10px;
+}
+
+.trash-dropzone.drag-over {
+    background: #ffe8a1;
+}
+
+/* --- Mobile improvements for wide tables --- */
+.table-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 768px) {
+    .current-assignments-table {
+        font-size: 12px;
+    }
+
+    .student-name-cell {
+        position: sticky;
+        right: 0;
+        background: #ffffff;
+        z-index: 2;
+        min-width: 210px;
+        box-shadow: -8px 0 10px rgba(0,0,0,0.06);
+    }
+
+    .assignment-card {
+        max-width: 120px;
+        font-size: 12px;
+        padding: 6px 4px;
+    }
+
+    /* Bigger tap targets */
+    .btn.btn-cancel {
+        padding: 4px 8px;
+        font-size: 12px;
+    }
+}
+
 </style>
 
 <script>
