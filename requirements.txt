@@ -7,3 +7,6 @@ openpyxl
 gunicorn
 pydrive
 reportlab
+Flask-SQLAlchemy
+psycopg2-binary
+python-dotenv

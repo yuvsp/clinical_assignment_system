@@ -572,7 +572,8 @@ def process_student_file(filepath):
         # Ensure email defaults to "add_email@gmail.com" if missing
         df['Email'].fillna("add_email@gmail.com", inplace=True)
         
-        # Clear existing records
+        # Clear existing records (Postgres-safe: remove assignments first)
+        Assignment.query.delete()
         Student.query.delete()
         db.session.commit()
 
@@ -625,7 +626,8 @@ def process_instructor_file(filepath):
             if col not in df.columns:
                 raise ValueError(f"Missing column: {col}")
         
-        # Clear existing records
+        # Clear existing records (Postgres-safe: remove assignments first)
+        Assignment.query.delete()
         ClinicalInstructor.query.delete()
         db.session.commit()
 
@@ -759,137 +761,88 @@ def upload_fields():
     return redirect(url_for('main.fields_view'))
 
 def process_fields_file(filepath):
+    """
+    Safely replace the Field table content (supports Postgres FK enforcement).
+    Preserves:
+      - Student preferred fields (by matching on Field.name)
+      - Instructor area_of_expertise (by matching on Field.name)
+
+    Expected columns in the uploaded file:
+      - Name (required)
+      - Color (optional; hex like #RRGGBB)
+    """
+    # Read fields from Excel
     data = pd.read_excel(filepath)
-    
-    # Clear existing records
-    Field.query.delete()
-    db.session.commit()
-    
-    for index, row in data.iterrows():
-        field_name = row['Name']
+
+    # Collect new fields in-order, de-duplicated by name
+    new_fields = []
+    seen = set()
+    for _, row in data.iterrows():
+        field_name = str(row.get('Name', '')).strip()
+        if not field_name or field_name in seen:
+            continue
+        seen.add(field_name)
+
         field_color = row.get('Color', None)
         if not field_color or not isinstance(field_color, str) or len(field_color) != 7 or not field_color.startswith('#'):
-            field_color = generate_color()
-        new_field = Field(name=field_name, color=field_color)
-        db.session.add(new_field)
-    db.session.commit()
+            field_color = None
 
-import pandas as pd
-import io
-from flask import send_file
-from datetime import datetime
+        new_fields.append((field_name, field_color))
 
-@bp.route('/download_assignments_view')
-def download_assignments_view():
+    # Build mapping of existing Field.id -> Field.name for preserving references
+    existing_fields = Field.query.all()
+    field_id_to_name = {f.id: f.name for f in existing_fields}
+
+    # Snapshot current student preferred field names
     students = Student.query.all()
-    days_of_week = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי']
+    student_pref_names = {}
+    for s in students:
+        student_pref_names[s.id] = (
+            field_id_to_name.get(s.preferred_field_id_1),
+            field_id_to_name.get(s.preferred_field_id_2),
+            field_id_to_name.get(s.preferred_field_id_3),
+        )
+        # Null out FKs before deleting fields
+        s.preferred_field_id_1 = None
+        s.preferred_field_id_2 = None
+        s.preferred_field_id_3 = None
 
-    assignments_data = {student.name: {day: None for day in days_of_week} for student in students}
-    instructor_colors = {instructor.name: instructor.color for instructor in ClinicalInstructor.query.all()}
+    # Snapshot current instructor expertise names
+    instructors = ClinicalInstructor.query.all()
+    instructor_expertise_name = {}
+    for ins in instructors:
+        instructor_expertise_name[ins.id] = field_id_to_name.get(ins.area_of_expertise_id)
+        ins.area_of_expertise_id = None
 
-    assignments = Assignment.query.all()
+    # Flush FK nulling so Postgres allows deleting Field rows
+    db.session.flush()
 
-    for assignment in assignments:
-        student_name = assignment.student.name
-        day = assignment.assigned_day
-        instructor_name = assignment.instructor.name
-        practice_location = assignment.instructor.practice_location
-        area_of_expertise = assignment.instructor.area_of_expertise.name
-        color_class = f"color-{instructor_name.replace(' ', '-').replace('.', '').lower()}"
-        assignments_data[student_name][day] = {
-            'text': f"{instructor_name} - {practice_location} - {area_of_expertise}",
-            'color_class': color_class,
-            'color': instructor_colors[instructor_name]
-        }
+    # Delete all existing fields
+    db.session.query(Field).delete(synchronize_session=False)
+    db.session.flush()
 
-    # Create a DataFrame
-    data = []
-    for student_name, days in assignments_data.items():
-        row = [student_name]
-        for day in days_of_week:
-            if days[day]:
-                row.append({
-                    'text': days[day]['text'],
-                    'color': days[day]['color']
-                })
-            else:
-                row.append(None)
-        data.append(row)
+    # Insert new fields
+    for name, color in new_fields:
+        db.session.add(Field(name=name, color=color))
+    db.session.flush()
 
-    df = pd.DataFrame(data, columns=['Student Name'] + days_of_week)
+    # Map new Field.name -> new Field.id
+    refreshed_fields = Field.query.all()
+    name_to_new_id = {f.name: f.id for f in refreshed_fields}
 
-    # Create an Excel file with colors
-    output = io.BytesIO()
-    writer = pd.ExcelWriter(output, engine='xlsxwriter')
-    df.to_excel(writer, index=False, sheet_name='Assignments View')
+    # Restore instructor expertise IDs if the field still exists
+    for ins in instructors:
+        old_name = instructor_expertise_name.get(ins.id)
+        ins.area_of_expertise_id = name_to_new_id.get(old_name)
 
-    workbook = writer.book
-    worksheet = writer.sheets['Assignments View']
+    # Restore student preferred field IDs if the field still exists
+    for s in students:
+        p1, p2, p3 = student_pref_names.get(s.id, (None, None, None))
+        s.preferred_field_id_1 = name_to_new_id.get(p1)
+        s.preferred_field_id_2 = name_to_new_id.get(p2)
+        s.preferred_field_id_3 = name_to_new_id.get(p3)
 
-    # Set column widths and RTL direction
-    worksheet.set_column('A:F', 22)  
-    worksheet.right_to_left()
-
-    # Apply colors to cells
-    for row_num, row in enumerate(data, start=1):
-        for col_num, cell in enumerate(row[1:], start=1):
-            if cell:
-                cell_format = workbook.add_format({'bg_color': cell['color']})
-                worksheet.write(row_num, col_num, cell['text'], cell_format)
-            else:
-                worksheet.write(row_num, col_num, '')
-
-    writer.close()
-    output.seek(0)
-
-    timestamp = datetime.now().strftime("%d_%m_%y_%H_%M")
-    filename = f"assignments_view_{timestamp}.xlsx"
-
-    return send_file(output, download_name=filename, as_attachment=True)
-
-@bp.route('/export_backup_excel')
-def export_backup_excel():
-    timestamp = datetime.now().strftime("%d_%m_%y_%H_%M")
-    filename = f"assignments_backup_{timestamp}.xlsx"
-
-    assignments = Assignment.query.all()
-    data = [{
-        'Student Name': assignment.student.name,
-        'Instructor Name': assignment.instructor.name,
-        'Assigned Day': assignment.assigned_day,
-        'Instructor Field': assignment.instructor.area_of_expertise.name,
-        'Practice Location': assignment.instructor.practice_location
-    } for assignment in assignments]
-
-    df = pd.DataFrame(data)
-    output = io.BytesIO()
-    writer = pd.ExcelWriter(output, engine='xlsxwriter')
-    df.to_excel(writer, index=False, sheet_name='Assignments')
-    writer.close()
-    output.seek(0)
-
-    return send_file(output, download_name=filename, as_attachment=True)
-
-@bp.route('/import_backup_excel', methods=['POST'])
-def import_backup_excel():
-    if 'file' not in request.files:
-        flash('No file part')
-        return redirect(url_for('main.current_assignments_table'))
-    
-    file = request.files['file']
-    if file.filename == '':
-        flash('No selected file')
-        return redirect(url_for('main.current_assignments_table'))
-    
-    if file and allowed_file(file.filename):
-        filename = secure_filename(file.filename)
-        filepath = os.path.join('uploads', filename)
-        file.save(filepath)
-        process_backup_file(filepath)
-        return redirect(url_for('main.current_assignments_table'))
-
-    flash('Invalid file format')
-    return redirect(url_for('main.current_assignments_table'))
+    db.session.commit()
 
 def process_backup_file(filepath):
     df = pd.read_excel(filepath)
