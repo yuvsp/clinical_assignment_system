@@ -2,62 +2,204 @@
 
 {% block content %}
 <h1 class="mb-4 text-right">קלינאיות</h1>
-<a href="{{ url_for('main.add_instructor') }}" class="btn btn-success mb-4">הוסף קלינאית</a>
-<a href="{{ url_for('main.download_instructors') }}" class="btn btn-success mb-4">הורד קובץ אקסל</a>
-<form action="{{ url_for('main.upload_instructors') }}" method="post" enctype="multipart/form-data" class="mb-4">
-    <input type="file" name="file" class="form-control-file mb-2" required>
-    <button type="submit" class="btn btn-warning">יבא רשומות קלינאיות</button>
-</form>
+<p class="text-muted text-right small mb-2">שינויים בשדות נשמרים אוטומטית.</p>
+<div class="d-flex flex-wrap gap-2 align-items-center mb-4">
+    <a href="{{ url_for('main.add_instructor') }}" class="btn btn-success">הוסף קלינאית</a>
+    <a href="{{ url_for('main.download_instructors') }}" class="btn btn-success">הורד קובץ אקסל</a>
+    <form action="{{ url_for('main.upload_instructors') }}" method="post" enctype="multipart/form-data" class="d-inline">
+        <span class="upload-one-btn">
+            <button type="button" class="btn btn-warning">ייבא רשומות קלינאיות</button>
+            <input type="file" name="file" class="upload-file-overlay" required onchange="this.form.submit()">
+        </span>
+    </form>
+</div>
 <div class="table-container">
-<table class="table table-bordered" dir="rtl">
+    <table class="table table-bordered instructors-table" dir="rtl">
     <thead>
         <tr>
-            <th class="text-right vertical-header">קיבלה חוזה</th>
+            <th class="text-right vertical-header">פעילה</th>
             <th class="text-right">שם</th>
             <th class="text-right">מקום תרגול</th>
+            <th class="text-right">משובצות</th>
             <th class="text-right">תחום התמחות</th>
             <th class="text-right">ותק</th>
             <th class="text-right">עיר</th>
             <th class="text-right">כתובת</th>
             <th class="text-right">טלפון</th>
-            <th class="text-right">אימייל</th>
+            <th class="text-right email-column">אימייל</th>
             <th class="text-right">ימים זמינים</th>
             <th class="text-right">יום אחד בלבד</th>
             <th class="text-right vertical-header">מקס' ביום</th>
             <th class="text-right vertical-header">סמסטרים</th>
+            <th class="text-right">צבע</th>
         </tr>
     </thead>
     <tbody>
         {% for instructor in instructors %}
-        <tr>
-            <td class="{{ 'green' if instructor.has_contract else 'red' }}">
-                <input type="checkbox" {% if instructor.has_contract %}checked{% endif %} disabled>
-            </td>            
+        <tr data-id="{{ instructor.id }}">
+            <td>
+                <input type="checkbox" data-field="is_active" {% if instructor.is_active %}checked{% endif %}>
+            </td>
             <td class="text-right instructor-name" style="--instructor-color: {{ instructor.color }};">
                 <div class="instructor-color"></div>
-                {{ instructor.name }}
-            </td>
-            <td class="text-right">{{ instructor.practice_location }}</td>
-            <td class="text-right">{{ instructor.area_of_expertise.name }}</td>
-            <td class="text-right">{{ instructor.years_of_experience }}</td>
-            <td class="text-right">{{ instructor.city }}</td>
-            <td class="text-right">{{ instructor.address }}</td>
-            <td class="text-right">{{ instructor.phone }}</td>
-            <td class="text-right email-text">{{ instructor.email }}</td>
-            <td contenteditable="true" data-field="available_days_to_assign">{{ instructor.available_days_to_assign}}
-                <!-- {{ instructor.available_days_to_assign.replace('-לא-זמין-לא-זמין', ' חסום') | trim }} -->
-            </td>
-            <td class="text-right">
-                {% if instructor.available_days_to_assign.split(',') | length > 1 %}
-                    {{ 'כן' if instructor.single_assignment else 'לא' }}
+                <div contenteditable="true" data-field="name">{{ instructor.name }}</div>
+                {% set _ns = namespace(assigned_names=[]) %}
+                {% for a in instructor.assignments %}
+                    {% if a.student %}{% set _ = _ns.assigned_names.append(a.student.name) %}{% endif %}
+                {% endfor %}
+                {% if _ns.assigned_names %}
+                <button type="button" class="btn btn-icon btn-sm mt-1 d-block btn-email-instructor" title="לשלוח אימייל" aria-label="לשלוח אימייל" data-instructor-name="{{ instructor.name | e }}" data-instructor-email="{{ instructor.email | e }}" data-assigned-names="{{ _ns.assigned_names | join(', ') | e }}">
+                    <i class="fas fa-envelope"></i>
+                </button>
                 {% endif %}
             </td>
-            <td class="text-right">{{ instructor.max_students_per_day }}</td>
-            <td class="text-right">{{ instructor.relevant_semesters }}</td>
+            <td contenteditable="true" data-field="practice_location">{{ instructor.practice_location }}</td>
+            <td class="text-right text-muted small">{% for a in instructor.assignments %}{% if a.student %}{{ a.student.name }}{% if not loop.last %}, {% endif %}{% endif %}{% endfor %}{% if not instructor.assignments %}—{% endif %}</td>
+            <td>
+                <select class="form-control form-control-sm" data-field="area_of_expertise">
+                    {% for field in fields %}
+                    <option value="{{ field.name }}" {% if field.name == instructor.area_of_expertise.name %}selected{% endif %}>{{ field.name }}</option>
+                    {% endfor %}
+                </select>
+            </td>
+            <td contenteditable="true" data-field="years_of_experience">{{ instructor.years_of_experience }}</td>
+            <td contenteditable="true" data-field="city">{{ instructor.city }}</td>
+            <td contenteditable="true" data-field="address">{{ instructor.address }}</td>
+            <td contenteditable="true" data-field="phone">{{ instructor.phone }}</td>
+            <td contenteditable="true" data-field="email" class="email-text">{{ instructor.email }}</td>
+            <td contenteditable="true" data-field="available_days_to_assign">{{ instructor.available_days_to_assign }}</td>
+            <td>
+                {% if instructor.available_days_to_assign.split(',') | length > 1 %}
+                    <input type="checkbox" data-field="single_assignment" {% if instructor.single_assignment %}checked{% endif %}>
+                {% endif %}
+            </td>
+            <td contenteditable="true" data-field="max_students_per_day">{{ instructor.max_students_per_day }}</td>
+            <td>
+                <select class="form-control form-control-sm select-semesters" data-field="relevant_semesters" data-current="{{ instructor._sem_display }}">
+                    <option value="א" {% if instructor._sem_display == 'א' %}selected{% endif %}>א</option>
+                    <option value="ב" {% if instructor._sem_display == 'ב' %}selected{% endif %}>ב</option>
+                </select>
+            </td>
+            <td>
+                <input type="color" class="form-control color-input" value="{{ instructor.color }}" data-field="color">
+            </td>
         </tr>
         {% endfor %}
     </tbody>
 </table>
 </div>
+{% endblock %}
 
+{% block scripts %}
+<script>
+(function() {
+    if (window.location.pathname !== '/instructors') return;
+
+    document.addEventListener('click', function(ev) {
+        var btn = ev.target.closest('.btn-email-instructor');
+        if (!btn) return;
+        var name = btn.getAttribute('data-instructor-name') || '';
+        var email = btn.getAttribute('data-instructor-email') || '';
+        var assignedNames = btn.getAttribute('data-assigned-names') || '';
+        var subject = encodeURIComponent('שיבוץ סטודנטים - ' + name);
+        var body = encodeURIComponent(
+            'שלום ' + name + ',\n\n' +
+            'השיבוצים עבור שפה ודיבור לסמסטר הקרוב הם: ' + assignedNames + '\n\n' +
+            'שיהיה בהצלחה,\nרון'
+        );
+        var gmailUrl = 'https://mail.google.com/mail/?view=cm&fs=1&to=' + encodeURIComponent(email) + '&su=' + subject + '&body=' + body;
+        window.open(gmailUrl, '_blank');
+    });
+
+    var fieldValidators = {
+        email: function(v) { return /^.+\@.+\..+$/.test(String(v).trim()); },
+        years_of_experience: function(v) { var n = parseInt(v, 10); return !isNaN(n) && n >= 0; },
+        max_students_per_day: function(v) { var n = parseInt(v, 10); return !isNaN(n) && n >= 0; },
+        color: function(v) { return /^#[0-9a-fA-F]{6}$/.test(String(v).trim()); }
+    };
+
+    function getCellValue(cell) {
+        if (cell.getAttribute('contenteditable') === 'true') return cell.textContent.trim();
+        if (cell.tagName === 'SELECT') return cell.value;
+        if (cell.tagName === 'INPUT' && cell.type === 'checkbox') return cell.checked;
+        if (cell.tagName === 'INPUT' && cell.type === 'color') return cell.value;
+        if (cell.querySelector('select')) return cell.querySelector('select').value;
+        if (cell.querySelector('input[type="checkbox"]')) return cell.querySelector('input[type="checkbox"]').checked;
+        if (cell.querySelector('input[type="color"]')) return cell.querySelector('input[type="color"]').value;
+        return '';
+    }
+
+    function setCellValue(cell, value) {
+        if (cell.getAttribute('contenteditable') === 'true') { cell.textContent = value; return; }
+        if (cell.tagName === 'SELECT') { cell.value = value; return; }
+        if (cell.tagName === 'INPUT' && cell.type === 'checkbox') { cell.checked = !!value; return; }
+        if (cell.tagName === 'INPUT' && cell.type === 'color') { cell.value = value; return; }
+        if (cell.querySelector('select')) { cell.querySelector('select').value = value; return; }
+        if (cell.querySelector('input[type="checkbox"]')) { cell.querySelector('input[type="checkbox"]').checked = !!value; return; }
+        if (cell.querySelector('input[type="color"]')) { cell.querySelector('input[type="color"]').value = value; return; }
+    }
+
+    function showFeedback(cell, ok) {
+        var td = cell.closest('td');
+        var el = td || cell;
+        el.classList.remove('inline-edit-success', 'inline-edit-error');
+        el.classList.add(ok ? 'inline-edit-success' : 'inline-edit-error');
+        setTimeout(function() { el.classList.remove('inline-edit-success', 'inline-edit-error'); }, 1200);
+    }
+
+    function saveField(row, cell, field, value) {
+        var id = row.dataset.id;
+        if (!id) return;
+        var payload = { field: field, value: value };
+        if (field === 'single_assignment' || field === 'has_contract' || field === 'is_active') payload.value = !!value;
+
+        fetch('/instructors/' + id + '/update_field', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        })
+        .then(function(r) { return r.json().then(function(j) { return { ok: r.ok, json: j }; }); })
+        .then(function(res) {
+            if (res.json.success) showFeedback(cell, true);
+            else {
+                showFeedback(cell, false);
+                if (res.json.error) alert(res.json.error);
+            }
+        })
+        .catch(function() { showFeedback(cell, false); });
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        var table = document.querySelector('.instructors-table');
+        if (!table) return;
+
+        table.querySelectorAll('[data-field]').forEach(function(cell) {
+            var field = cell.getAttribute('data-field');
+            var row = cell.closest('tr');
+            var lastValue = getCellValue(cell);
+
+            if (cell.getAttribute('contenteditable') === 'true') {
+                cell.addEventListener('blur', function() {
+                    var v = getCellValue(cell);
+                    if (v === lastValue) return;
+                    if (fieldValidators[field] && !fieldValidators[field](v)) {
+                        setCellValue(cell, lastValue);
+                        showFeedback(cell, false);
+                        return;
+                    }
+                    lastValue = v;
+                    saveField(row, cell, field, v);
+                });
+            } else {
+                var el = (cell.tagName === 'SELECT' || (cell.tagName === 'INPUT' && (cell.type === 'checkbox' || cell.type === 'color'))) ? cell : (cell.querySelector('select') || cell.querySelector('input[type="checkbox"]') || cell.querySelector('input[type="color"]'));
+                if (el) el.addEventListener('change', function() {
+                    var v = getCellValue(cell);
+                    lastValue = v;
+                    saveField(row, cell, field, v);
+                });
+            }
+        });
+    });
+})();
+</script>
 {% endblock %}

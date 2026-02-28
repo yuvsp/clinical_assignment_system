@@ -12,10 +12,12 @@
     <label class="semester-label">סמסטר ב</label>
 </div>
 
-<div class="mb-3 text-center">
+<div class="mb-3 d-flex flex-wrap gap-2 align-items-center justify-content-center">
     <form action="{{ url_for('main.import_backup_excel') }}" method="post" enctype="multipart/form-data" class="d-inline">
-        <input type="file" name="file" class="form-control-file d-inline-block mb-2" required>
-        <button type="submit" class="btn btn-warning">ייבא גיבוי אקסל</button>
+        <span class="upload-one-btn">
+            <button type="button" class="btn btn-warning">ייבא גיבוי אקסל</button>
+            <input type="file" name="file" class="upload-file-overlay" required onchange="this.form.submit()">
+        </span>
     </form>
     <a href="{{ url_for('main.export_backup_excel') }}" class="btn btn-secondary">ייצא גיבוי אקסל</a>
 </div>

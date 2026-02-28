@@ -2,7 +2,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, send_f
 from werkzeug.utils import secure_filename
 from app import db
 from app.models import ClinicalInstructor, Student, Assignment, Field, ArchivedSnapshot, ArchivedAssignment
-from app.pdf_utils import generate_student_pdf
+from app.pdf_utils import generate_student_pdf, get_student_email_body
 import pandas as pd
 import io
 import os
@@ -73,8 +73,95 @@ def current_assignments():
 
 @bp.route('/instructors')
 def instructors_view():
-    instructors = ClinicalInstructor.query.all()
-    return render_template('instructors.html', instructors=instructors)
+    instructors = ClinicalInstructor.query.options(
+        db.joinedload(ClinicalInstructor.assignments).joinedload(Assignment.student)
+    ).all()
+    for inst in instructors:
+        sem = (inst.relevant_semesters or 'א').strip()
+        inst._sem_display = sem if sem in ('א', 'ב') else 'א'
+    instructors.sort(key=lambda i: (not (i.assignments and len(i.assignments) > 0), (i.name or '').lower()))
+    fields = Field.query.all()
+    return render_template('instructors.html', instructors=instructors, fields=fields)
+
+
+@bp.route('/instructors/<int:instructor_id>/update_field', methods=['POST'])
+def instructor_update_field(instructor_id):
+    instructor = ClinicalInstructor.query.get(instructor_id)
+    if not instructor:
+        return jsonify({'success': False, 'error': 'Instructor not found'}), 404
+    data = request.get_json()
+    if not data or 'field' not in data:
+        return jsonify({'success': False, 'error': 'Missing field or body'}), 400
+    field = data.get('field')
+    value = data.get('value')
+
+    # Text / number fields
+    if field == 'name':
+        instructor.name = (value or '').strip() or instructor.name
+    elif field == 'practice_location':
+        instructor.practice_location = (value or '').strip() or instructor.practice_location
+    elif field == 'city':
+        instructor.city = (value or '').strip() or instructor.city
+    elif field == 'address':
+        instructor.address = (value or '').strip() or instructor.address
+    elif field == 'phone':
+        instructor.phone = (value or '').strip() or instructor.phone
+    elif field == 'available_days_to_assign':
+        instructor.available_days_to_assign = (value or '').strip() or instructor.available_days_to_assign
+    elif field == 'years_of_experience':
+        try:
+            n = int(value)
+            if n < 0:
+                return jsonify({'success': False, 'error': 'Years of experience must be non-negative'}), 400
+            instructor.years_of_experience = n
+        except (TypeError, ValueError):
+            return jsonify({'success': False, 'error': 'Invalid number for years of experience'}), 400
+    elif field == 'relevant_semesters':
+        v = (value or '').strip()
+        if v not in ('א', 'ב'):
+            return jsonify({'success': False, 'error': 'Semester must be א or ב'}), 400
+        instructor.relevant_semesters = v
+    elif field == 'email':
+        v = (value or '').strip()
+        if not v or not ('.' in v and '@' in v):
+            return jsonify({'success': False, 'error': 'Invalid email format'}), 400
+        instructor.email = v
+    elif field == 'max_students_per_day':
+        try:
+            n = int(value)
+            if n < 0:
+                return jsonify({'success': False, 'error': 'Max students per day must be non-negative'}), 400
+            instructor.max_students_per_day = n
+        except (TypeError, ValueError):
+            return jsonify({'success': False, 'error': 'Invalid number for max students per day'}), 400
+    elif field == 'color':
+        v = (value or '').strip()
+        if not v or len(v) != 7 or v[0] != '#' or not all(c in '0123456789abcdefABCDEF' for c in v[1:]):
+            return jsonify({'success': False, 'error': 'Color must be #RRGGBB'}), 400
+        instructor.color = v
+    elif field == 'area_of_expertise':
+        name = (value or '').strip()
+        f = Field.query.filter_by(name=name).first()
+        if not f:
+            return jsonify({'success': False, 'error': 'Field not found'}), 400
+        instructor.area_of_expertise_id = f.id
+    elif field == 'has_contract':
+        instructor.has_contract = bool(value)
+    elif field == 'is_active':
+        instructor.is_active = bool(value)
+    elif field == 'single_assignment':
+        old_single = instructor.single_assignment
+        instructor.single_assignment = bool(value)
+        if old_single and not instructor.single_assignment:
+            original_days = [d.replace('-לא-זמין', '').strip() for d in instructor.available_days_to_assign.split(',')]
+            instructor.available_days_to_assign = ','.join(original_days)
+    else:
+        return jsonify({'success': False, 'error': 'Unknown field'}), 400
+
+    db.session.add(instructor)
+    db.session.commit()
+    return jsonify({'success': True, 'field': field, 'value': value})
+
 
 @bp.route('/students')
 def students_view():
@@ -221,7 +308,7 @@ def assign_instructor(student_id):
         student.preferred_field_2.name if student.preferred_field_2 else '',
         student.preferred_field_3.name if student.preferred_field_3 else ''
     ]
-    all_instructors = ClinicalInstructor.query.all()
+    all_instructors = ClinicalInstructor.query.filter_by(is_active=True).all()
     relevant_instructors = []
     irrelevant_instructors = []
 
@@ -256,6 +343,54 @@ def assign_instructor(student_id):
 
     return render_template('assign.html', student=student, relevant_instructor_days=relevant_instructors, irrelevant_instructors=irrelevant_instructors, student_assigned_days=student_assigned_days, preferred_fields=preferred_fields)
 
+
+def _can_assign_instructor_to_student_day(instructor_id, student_id, day):
+    """Return (valid: bool, reason: str|None). Reuses same rules as relevant_instructors."""
+    student = Student.query.get(student_id)
+    if not student:
+        return False, 'סטודנטית לא נמצאה'
+    instructor = ClinicalInstructor.query.get(instructor_id)
+    if not instructor:
+        return False, 'קלינאית לא נמצאה'
+    if not getattr(instructor, 'is_active', True):
+        return False, 'הקלינאית אינה פעילה'
+    preferred_fields = [
+        student.preferred_field_1.name if student.preferred_field_1 else '',
+        student.preferred_field_2.name if student.preferred_field_2 else '',
+        student.preferred_field_3.name if student.preferred_field_3 else '',
+    ]
+    student_assignments = Assignment.query.filter_by(student_id=student_id).all()
+    if len(student_assignments) >= 3:
+        return False, 'לסטודנטית כבר יש שלושה שיבוצים'
+    student_assigned_days = [a.assigned_day for a in student_assignments]
+    if day in student_assigned_days:
+        return False, 'לסטודנטית כבר יש שיבוץ באותו יום'
+    available_days = instructor.available_days_to_assign.split(',')
+    day_available = day in available_days
+    if not day_available:
+        return False, 'הקלינאית תפוסה ביום זה'
+    assigned_count = Assignment.query.filter_by(instructor_id=instructor_id, assigned_day=day).count()
+    if assigned_count >= instructor.max_students_per_day:
+        return False, 'הקלינאית תפוסה ביום זה'
+    if instructor.area_of_expertise.name not in preferred_fields:
+        return False, 'תחום לא מועדף של הסטודנטית'
+    return True, None
+
+
+@bp.route('/can_assign')
+def can_assign():
+    """GET ?instructor_id=&student_id=&day= -> { valid: bool, reason?: str }"""
+    instructor_id = request.args.get('instructor_id', type=int)
+    student_id = request.args.get('student_id', type=int)
+    day = request.args.get('day')
+    if not instructor_id or not student_id or not day:
+        return jsonify({'valid': False, 'reason': 'חסרים פרמטרים'}), 400
+    valid, reason = _can_assign_instructor_to_student_day(instructor_id, student_id, day)
+    if valid:
+        return jsonify({'valid': True})
+    return jsonify({'valid': False, 'reason': reason or 'לא ניתן לשיבוץ'})
+
+
 @bp.route('/relevant_instructors/<int:student_id>')       
 def relevant_instructors(student_id):
     student = Student.query.get(student_id)
@@ -268,7 +403,7 @@ def relevant_instructors(student_id):
         student.preferred_field_3.name if student.preferred_field_3 else ''
     ]
 
-    all_instructors = ClinicalInstructor.query.all()
+    all_instructors = ClinicalInstructor.query.filter_by(is_active=True).all()
     relevant_instructors = []
     irrelevant_instructors = []
 
@@ -284,6 +419,7 @@ def relevant_instructors(student_id):
                 if instructor.area_of_expertise.name in preferred_fields:
                     if day not in student_assigned_days:
                         relevant_instructors.append({
+                            'id': instructor.id,
                             'name': instructor.name,
                             'area_of_expertise': instructor.area_of_expertise.name,
                             'day': day
@@ -332,7 +468,8 @@ def download_instructors():
         'Max Students Per Day': instructor.max_students_per_day,
         'Color': instructor.color,
         'Single Assignment': instructor.single_assignment,
-        'Has Contract': instructor.has_contract  # Include the has_contract field
+        'Has Contract': instructor.has_contract,
+        'Is Active': getattr(instructor, 'is_active', True)
     } for instructor in instructors]
 
     df = pd.DataFrame(data)
@@ -530,8 +667,9 @@ def process_instructor_file(filepath):
                 available_days_to_assign=row['Available Days to Assign'],
                 max_students_per_day=row['Max Students Per Day'],
                 color=color,
-                single_assignment=row['Single Assignment'] if 'Single Assignment' in row and not pd.isnull(row['Single Assignment']) else False,  # Handle single_assignment
-                has_contract=row['Has Contract'] if 'Has Contract' in row and not pd.isnull(row['Has Contract']) else False  # Handle has_contract
+                single_assignment=row['Single Assignment'] if 'Single Assignment' in row and not pd.isnull(row['Single Assignment']) else False,
+                has_contract=row['Has Contract'] if 'Has Contract' in row and not pd.isnull(row['Has Contract']) else False,
+                is_active=row['Is Active'] if 'Is Active' in row and not pd.isnull(row['Is Active']) else True
             )
             db.session.add(new_instructor)
         db.session.commit()
@@ -543,9 +681,98 @@ def process_instructor_file(filepath):
 @bp.route('/remove_assignment/<int:assignment_id>', methods=['POST']) 
 def remove_assignment(assignment_id):
     assignment = Assignment.query.get_or_404(assignment_id)
+    instructor = assignment.instructor
     db.session.delete(assignment)
+    if instructor and instructor.single_assignment:
+        remaining = Assignment.query.filter_by(instructor_id=instructor.id).count()
+        if remaining == 0:
+            available_days = instructor.available_days_to_assign.split(',')
+            restored = [d.replace('-לא-זמין', '').strip() for d in available_days]
+            instructor.available_days_to_assign = ','.join(restored)
+            db.session.add(instructor)
     db.session.commit()
     return redirect(url_for('main.current_assignments_table'))
+
+
+@bp.route('/move_assignment', methods=['POST'])
+def move_assignment():
+    """Move an assignment to another student/day. Body: assignment_id, new_student_id, new_day."""
+    assignment_id = request.form.get('assignment_id', type=int)
+    new_student_id = request.form.get('new_student_id', type=int)
+    new_day = request.form.get('new_day')
+    if not assignment_id or not new_student_id or not new_day:
+        flash('חסרים פרמטרים להעברה', 'danger')
+        return redirect(url_for('main.current_assignments_table'))
+    assignment = Assignment.query.get_or_404(assignment_id)
+    instructor_id = assignment.instructor_id
+    old_student_id = assignment.student_id
+    old_day = assignment.assigned_day
+    if old_student_id == new_student_id and old_day == new_day:
+        return redirect(url_for('main.current_assignments_table'))
+    valid, reason = _can_assign_instructor_to_student_day(instructor_id, new_student_id, new_day)
+    if not valid:
+        flash(reason or 'לא ניתן להעביר לשיבוץ זה', 'danger')
+        return redirect(url_for('main.current_assignments_table'))
+    instructor = assignment.instructor
+    db.session.delete(assignment)
+    if instructor and instructor.single_assignment:
+        remaining = Assignment.query.filter_by(instructor_id=instructor.id).count()
+        if remaining == 0:
+            available_days = instructor.available_days_to_assign.split(',')
+            restored = [d.replace('-לא-זמין', '').strip() for d in available_days]
+            instructor.available_days_to_assign = ','.join(restored)
+            db.session.add(instructor)
+    new_student = Student.query.get(new_student_id)
+    allocation = 'שפה' if new_student.semester == 'א' else 'אודיו ושיקום'
+    if allocation == 'אודיו ושיקום':
+        Assignment.query.filter_by(student_id=new_student_id).delete()
+        existing = Assignment.query.filter_by(student_id=new_student_id, instructor_id=501, assigned_day='ראשון').first()
+        if not existing:
+            db.session.add(Assignment(student_id=new_student_id, instructor_id=501, assigned_day='ראשון'))
+    else:
+        Assignment.query.filter_by(student_id=new_student_id, instructor_id=501, assigned_day='ראשון').delete()
+        db.session.add(Assignment(student_id=new_student_id, instructor_id=instructor_id, assigned_day=new_day))
+        if instructor and instructor.single_assignment:
+            available_days = instructor.available_days_to_assign.split(',')
+            base_days = [d.replace('-לא-זמין', '').strip() for d in available_days]
+            with_suffix = [d if d == new_day else d + '-לא-זמין' for d in base_days]
+            instructor.available_days_to_assign = ','.join(with_suffix)
+            db.session.add(instructor)
+    db.session.commit()
+    return redirect(url_for('main.current_assignments_table'))
+
+
+@bp.route('/assign_direct', methods=['POST'])
+def assign_direct():
+    """Create an assignment from student_id, instructor_id, assigned_day (e.g. from tooltip one-click)."""
+    student_id = request.form.get('student_id', type=int)
+    instructor_id = request.form.get('instructor_id', type=int)
+    assigned_day = request.form.get('assigned_day')
+    if not student_id or not instructor_id or not assigned_day:
+        flash('חסרים פרמטרים לשיבוץ', 'danger')
+        return redirect(url_for('main.current_assignments_table'))
+    student = Student.query.get(student_id)
+    if not student:
+        flash('סטודנטית לא נמצאה', 'danger')
+        return redirect(url_for('main.current_assignments_table'))
+    allocation = 'שפה' if student.semester == 'א' else 'אודיו ושיקום'
+    if allocation == 'אודיו ושיקום':
+        Assignment.query.filter_by(student_id=student_id).delete()
+        existing = Assignment.query.filter_by(student_id=student_id, instructor_id=501, assigned_day='ראשון').first()
+        if not existing:
+            db.session.add(Assignment(student_id=student.id, instructor_id=501, assigned_day='ראשון'))
+    elif allocation == 'שפה':
+        Assignment.query.filter_by(student_id=student_id, instructor_id=501, assigned_day='ראשון').delete()
+        db.session.add(Assignment(student_id=student.id, instructor_id=instructor_id, assigned_day=assigned_day))
+        instructor = ClinicalInstructor.query.get(instructor_id)
+        if instructor and instructor.single_assignment:
+            available_days = instructor.available_days_to_assign.split(',')
+            available_days_with_suffix = [d if d == assigned_day else d + '-לא-זמין' for d in available_days]
+            instructor.available_days_to_assign = ','.join(available_days_with_suffix)
+            db.session.add(instructor)
+    db.session.commit()
+    return redirect(url_for('main.current_assignments_table'))
+
 
 @bp.route('/assignments_view')
 def assignments_view():
@@ -889,6 +1116,14 @@ def download_pdf(student_id):
     pdf = generate_student_pdf(student)
     return send_file(pdf, download_name=f"שיבוצים שפה ודיבור {student.name}.pdf", as_attachment=True)
 
+
+@bp.route('/api/email_body/<int:student_id>', methods=['GET'])
+def api_email_body(student_id):
+    student = Student.query.get_or_404(student_id)
+    body = get_student_email_body(student)
+    subject = f"שיבוץ שפה ודיבור - {student.name}"
+    return jsonify({'subject': subject, 'body': body})
+
 #########################################
 @bp.route('/archive_assignments', methods=['POST'])
 def archive_assignments():
@@ -944,6 +1179,19 @@ def archive_assignments():
 
     flash(f"Archived {len(assignments)} assignments under '{snapshot_full_name}'.", "success")
     return redirect(url_for('main.current_assignments_table'))
+
+
+@bp.route('/clear_assignments', methods=['POST'])
+def clear_assignments():
+    try:
+        Assignment.query.delete()
+        db.session.commit()
+        flash("כל השיבוצים נמחקו מהמערכת.", "success")
+    except Exception:
+        db.session.rollback()
+        flash("ארעה שגיאה בעת מחיקת השיבוצים.", "danger")
+    return redirect(url_for('main.current_assignments_table'))
+
 
 @bp.route('/historic_assignments')
 def historic_assignments():

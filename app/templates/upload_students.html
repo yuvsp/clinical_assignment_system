@@ -4,11 +4,12 @@
 <h1 class="mb-4 text-right">ייבא סטודנטיות מקובץ אקסל</h1>
 <p class="text-right text-muted mb-4">העלאת קובץ תחליף את כל רשומות הסטודנטיות הקיימות. נא להעלות קובץ אקסל עם העמודות: Name, Email, Preferred Field 1, Preferred Field 2, Preferred Field 3, Preferred Practice Area, Semester.</p>
 <form action="{{ url_for('main.upload_students') }}" method="post" enctype="multipart/form-data" dir="rtl" class="card-form">
-    <div class="form-group text-right">
-        <label for="file">קובץ אקסל:</label>
-        <input type="file" id="file" name="file" class="form-control-file" accept=".xlsx,.xls" required>
+    <div class="form-group text-right d-flex flex-wrap gap-2 align-items-center">
+        <span class="upload-one-btn">
+            <button type="button" class="btn btn-primary">ייבא רשומות סטודנטיות</button>
+            <input type="file" id="file" name="file" class="upload-file-overlay" accept=".xlsx,.xls" required onchange="this.form.submit()">
+        </span>
+        <a href="{{ url_for('main.students_view') }}" class="btn btn-secondary">חזרה לסטודנטיות</a>
     </div>
-    <button type="submit" class="btn btn-primary">ייבא רשומות סטודנטיות</button>
-    <a href="{{ url_for('main.students_view') }}" class="btn btn-secondary">חזרה לסטודנטיות</a>
 </form>
 {% endblock %}

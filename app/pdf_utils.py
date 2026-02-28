@@ -125,3 +125,41 @@ def generate_student_pdf(student):
     doc.build(elements)
     buffer.seek(0)
     return buffer
+
+
+# Unicode RTL mark so email clients display the body right-to-left for Hebrew
+RTL_MARK = "\u200F"
+
+
+def get_student_email_body(student):
+    """Build the same content as the PDF as plain text for the email body (RTL, structured blocks)."""
+    name_parts = student.name.strip().split()
+    first_name = name_parts[-1] if name_parts else student.name
+    greeting = f"שלום {first_name},\n\n"
+    title = "שיבוץ התנסות מעשית בשפה ודיבור\n"
+    title += f"{student.name}\n\n"
+
+    lines = [greeting + title]
+
+    if student.assignments:
+        for i, assignment in enumerate(student.assignments, 1):
+            instructor = assignment.instructor
+            contact = format_phone_number(instructor.phone) if instructor else ""
+            instructor_name = instructor.name if instructor else ""
+            place = instructor.practice_location if instructor else ""
+            day = assignment.assigned_day
+            lines.append(f"שיבוץ {i}:\n")
+            lines.append(f"• קלינאית מדריכה: {instructor_name}\n")
+            lines.append(f"• מקום התנסות: {place}\n")
+            lines.append(f"• יום התנסות: {day}\n")
+            lines.append(f"• פרטי התקשרות: {contact}\n\n")
+    else:
+        lines.append("אין שיבוצים כרגע.\n\n")
+
+    lines.append("31 ימי התנסות בכל מקום.\n")
+    lines.append("בכל אחד מהמקומות יש ליצור קשר טלפוני עם הקלינאית המדריכה\n")
+    lines.append("כשבוע לפני מועד ההתחלה, לשם קבלת מידע ראשוני לגבי ההתנסות\n\n")
+    lines.append("שיהיה בהצלחה,\nרון")
+
+    body = "".join(lines)
+    return RTL_MARK + body
