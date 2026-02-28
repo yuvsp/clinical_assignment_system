@@ -12,30 +12,25 @@
     </form>
     <a href="{{ url_for('main.export_backup_excel') }}" class="btn btn-secondary">ייצא גיבוי אקסל</a>
 </div>
-<button type="button" class="btn btn-info" data-toggle="modal" data-target="#archiveModal">
+<button type="button" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#archiveModal">
 ארכוב שיבוצים
   </button>
   
   <!-- Modal to gather "snapshot name" -->
-  <div class="modal fade" id="archiveModal" tabindex="-1" role="dialog">
-    <div class="modal-dialog" role="document">
+  <div class="modal fade" id="archiveModal" tabindex="-1" aria-labelledby="archiveModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
       <form method="POST" action="{{ url_for('main.archive_assignments') }}">
         <div class="modal-content">
           <div class="modal-header">
-            <h5 class="modal-title">ארכוב תמונת שיבוצים להיסטוריה</h5>
-            <!-- <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-              <span aria-hidden="true">×</span>
-            </button> -->
+            <h5 class="modal-title" id="archiveModalLabel">ארכוב תמונת שיבוצים להיסטוריה</h5>
           </div>
           <div class="modal-body">
-            <label>שם לארכיון</label>
+            <label class="form-label">שם לארכיון</label>
             <input type="text" name="snapshot_name" class="form-control" required>
-            <p class="text-muted" style="font-size: 0.9em;">
-              <!-- A timestamp will be added automatically (e.g., "_03_01_25_13_45"). -->
-            </p>
+            <p class="text-muted small mt-2"></p>
           </div>
           <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-dismiss="modal">ביטול</button>
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ביטול</button>
             <button type="submit" class="btn btn-primary">אירכוב</button>
           </div>
         </div>
@@ -44,7 +39,7 @@
   </div>
 
 <table class="table table-bordered mb-4 current-assignments-table" dir="rtl" style="table-layout: fixed; width: 100%;">
-    <thead class="thead-light">
+    <thead>
         <tr>
             <th class="text-right">שם הסטודנט</th>
             <th class="text-center">ראשון</th>
@@ -111,7 +106,7 @@
                         <!-- Tooltip for instructor availability when hovering -->
                         <div class="student-container">
                             <div class="student" data-student-id="{{ student_data.id }}" onmouseover="fetchInstructors('{{ student_data.id }}', '{{ day }}', this.querySelector('.instructors-tooltip'))">
-                                <a href="{{ url_for('main.assign_instructor', student_id=student_data.id, assigned_day=day) }}" class="btn btn-primary">שיבוץ</a>
+                                <a href="{{ url_for('main.assign_instructor', student_id=student_data.id, assigned_day=day) }}" class="btn btn-primary striped">שיבוץ</a>
                                 <div class="instructors-tooltip">טוען...</div>
                             </div>                            
                         </div>
@@ -129,47 +124,18 @@
 
 <style>
 .btn-icon {
-    width: 24px !important;
-    height: 24px !important;
+    width: 28px !important;
+    height: 28px !important;
     padding: 0 !important;
-    display: flex !important;
+    display: inline-flex !important;
     justify-content: center !important;
     align-items: center !important;
-    background-color: white !important;
-    border: 1px solid #ccc !important;
-    border-radius: 4px !important;
+    background-color: var(--surface) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: var(--radius-sm) !important;
 }
-
-.btn-icon i {
-    font-size: 14px !important;
-    color: #555 !important;
-}
-
-.btn-icon:hover {
-    background-color: rgba(0, 0, 0, 0.1) !important;
-    border-color: #aaa !important;
-}
-
-/* Tooltip styling */
-.instructors-tooltip {
-    visibility: hidden;
-    width: 200px;
-    background-color: #f9f9f9;
-    color: #000;
-    text-align: left;
-    border: 1px solid #ccc;
-    padding: 10px;
-    position: absolute;
-    z-index: 1;
-    top: 100%;
-    left: 50%;
-    margin-left: -100px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-}
-
-.student:hover .instructors-tooltip {
-    visibility: visible;
-}
+.btn-icon i { font-size: 14px !important; color: var(--text-muted) !important; }
+.btn-icon:hover { background-color: var(--surface-alt) !important; border-color: var(--primary) !important; }
 </style>
 
 <script>

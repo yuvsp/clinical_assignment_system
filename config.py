@@ -12,4 +12,5 @@ class Config:
         SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URL', 'sqlite:////data/clinical_assignment.db')
 
     SQLALCHEMY_TRACK_MODIFICATIONS = False
-    SECRET_KEY = os.urandom(24)
+    SECRET_KEY = os.getenv('SECRET_KEY') or os.urandom(24).hex()
+    DEBUG = os.getenv('FLASK_DEBUG', '0').lower() in ('1', 'true', 'yes')

@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1 class="mb-4 text-right">ייבא קלינאיות מקובץ אקסל</h1>
+<p class="text-right text-muted mb-4">העלאת קובץ תחליף את כל רשומות הקלינאיות הקיימות. נא להעלות קובץ אקסל עם העמודות הנדרשות (Name, Practice Location, Area of Expertise, וכו').</p>
+<form action="{{ url_for('main.upload_instructors') }}" method="post" enctype="multipart/form-data" dir="rtl" class="card-form">
+    <div class="form-group text-right">
+        <label for="file">קובץ אקסל:</label>
+        <input type="file" id="file" name="file" class="form-control-file" accept=".xlsx,.xls" required>
+    </div>
+    <button type="submit" class="btn btn-primary">ייבא רשומות קלינאיות</button>
+    <a href="{{ url_for('main.instructors_view') }}" class="btn btn-secondary">חזרה לקלינאיות</a>
+</form>
+{% endblock %}
