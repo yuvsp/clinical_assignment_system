@@ -448,6 +448,72 @@ def relevant_instructors(student_id):
 
     return jsonify({'relevant_instructors': relevant_instructors, 'irrelevant_instructors': irrelevant_instructors})
 
+
+def _build_relevant_instructors_bulk(assignments_list, student_assignments_dict, active_instructors):
+    """Build relevant/irrelevant instructors per assignable student using in-memory counts (no N+1)."""
+    # (instructor_id, assigned_day) -> count
+    count_map = defaultdict(int)
+    for a in assignments_list:
+        if a.instructor_id is None:
+            continue
+        count_map[(a.instructor_id, a.assigned_day)] += 1
+
+    result = {}
+    for student_id, student_data in student_assignments_dict.items():
+        if student_data['allocation'] != 'שפה':
+            continue
+        assign_list = student_data['assignments']
+        non_none = [x for x in assign_list if x is not None]
+        if len(non_none) >= 3:
+            continue
+        student_assigned_days = [a.assigned_day for a in non_none]
+        preferred_fields = student_data['preferred_fields']
+        relevant_instructors = []
+        irrelevant_instructors = []
+
+        for instructor in active_instructors:
+            area = instructor.area_of_expertise.name if instructor.area_of_expertise else ''
+            available_days = instructor.available_days_to_assign.split(',')
+            for day in available_days:
+                assigned_count = count_map.get((instructor.id, day), 0)
+                if assigned_count >= instructor.max_students_per_day:
+                    irrelevant_instructors.append({
+                        'name': instructor.name,
+                        'area_of_expertise': area,
+                        'day': day,
+                        'reason': 'הקלינאית תפוסה ביום זה'
+                    })
+                else:
+                    if area in preferred_fields:
+                        if day not in student_assigned_days:
+                            relevant_instructors.append({
+                                'id': instructor.id,
+                                'name': instructor.name,
+                                'area_of_expertise': area,
+                                'day': day
+                            })
+                        else:
+                            irrelevant_instructors.append({
+                                'name': instructor.name,
+                                'area_of_expertise': area,
+                                'day': day,
+                                'reason': 'לסטודנטית כבר יש שיבוץ באותו יום'
+                            })
+                    else:
+                        irrelevant_instructors.append({
+                            'name': instructor.name,
+                            'area_of_expertise': area,
+                            'day': day,
+                            'reason': 'תחום לא מועדף של הסטודנטית'
+                        })
+
+        result[str(student_id)] = {
+            'relevant_instructors': relevant_instructors,
+            'irrelevant_instructors': irrelevant_instructors
+        }
+    return result
+
+
 @bp.route('/download_instructors')
 def download_instructors():
     timestamp = datetime.now().strftime("%d_%m_%y_%H_%M")
@@ -1095,11 +1161,20 @@ def current_assignments_table():
         x['allocation'] != 'אודיו ושיקום'
     ))
 
+    # Precompute relevant/irrelevant instructors for all assignable students (one batch, no N+1)
+    active_instructors = ClinicalInstructor.query.filter_by(is_active=True).options(
+        db.joinedload(ClinicalInstructor.area_of_expertise)
+    ).all()
+    relevant_instructors_bulk = _build_relevant_instructors_bulk(
+        assignments, student_assignments, active_instructors
+    )
+
     return render_template(
-        'current_assignments_table.html', 
-        student_assignments=sorted_students, 
-        semester=semester, 
-        instructor_colors=instructor_colors  # Pass instructor colors to the template
+        'current_assignments_table.html',
+        student_assignments=sorted_students,
+        semester=semester,
+        instructor_colors=instructor_colors,
+        relevant_instructors_bulk=relevant_instructors_bulk
     )
 
 def determine_allocation(student):
