@@ -1,23 +1,30 @@
-/* Design tokens */
+/* Design tokens – JMC (jmc.ac.il) style */
 :root {
-    --primary: #2d5a4a;
-    --primary-hover: #3d7a64;
-    --primary-light: #e8f0ee;
+    --primary: #0d3b5c;
+    --primary-hover: #134a72;
+    --primary-light: #e8eef4;
+    --primary-rgb: 13, 59, 92;
     --secondary: #c9a227;
     --secondary-hover: #b8921f;
     --surface: #ffffff;
-    --surface-alt: #f6f8f7;
-    --border: #e0e6e4;
+    --surface-alt: #f4f6f8;
+    --border: #dde1e5;
     --text: #1a2e28;
     --text-muted: #5c6d68;
     --success-bg: #d4edda;
     --warning-bg: #fff3cd;
     --danger-bg: #f8d7da;
     --danger: #c0393b;
+    --danger-hover: #a62d2f;
+    --btn-cancel: #d4d2b5;
+    --btn-cancel-hover: #c4c2a5;
+    --historic-bg: #f5f5dc;
     --radius: 8px;
     --radius-sm: 6px;
     --space: 1rem;
     --font: 'Heebo', system-ui, sans-serif;
+    --font-size-sm: 0.75rem;
+    --font-size-muted: 12px;
 }
 
 /* Base */
@@ -135,7 +142,7 @@ h1 {
 }
 
 .btn-danger:hover {
-    background-color: #a62d2f !important;
+    background-color: var(--danger-hover) !important;
     color: var(--surface) !important;
 }
 
@@ -160,12 +167,12 @@ h1 {
 }
 
 .btn-cancel {
-    background-color: #d4d2b5 !important;
+    background-color: var(--btn-cancel) !important;
     color: var(--text) !important;
 }
 
 .btn-cancel:hover {
-    background-color: #c4c2a5 !important;
+    background-color: var(--btn-cancel-hover) !important;
     color: var(--text) !important;
 }
 
@@ -185,8 +192,8 @@ h1 {
 .btn-primary.striped {
     background: repeating-linear-gradient(
         135deg,
-        rgba(45, 90, 74, 0.15),
-        rgba(45, 90, 74, 0.15) 8px,
+        rgba(var(--primary-rgb), 0.15),
+        rgba(var(--primary-rgb), 0.15) 8px,
         transparent 8px,
         transparent 16px
     ) !important;
@@ -198,8 +205,8 @@ h1 {
 .btn-primary.striped:hover {
     background: repeating-linear-gradient(
         135deg,
-        rgba(45, 90, 74, 0.3),
-        rgba(45, 90, 74, 0.3) 8px,
+        rgba(var(--primary-rgb), 0.3),
+        rgba(var(--primary-rgb), 0.3) 8px,
         transparent 8px,
         transparent 16px
     ) !important;
@@ -217,7 +224,7 @@ h1 {
 }
 
 .current-assignments-table .btn-assign-trigger.btn-primary.striped:hover {
-    background: rgba(45, 90, 74, 0.15) !important;
+    background: rgba(var(--primary-rgb), 0.15) !important;
     border-color: var(--primary) !important;
     color: var(--primary) !important;
 }
@@ -266,7 +273,7 @@ label {
 
 .form-control:focus {
     border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(45, 90, 74, 0.15);
+    box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.15);
 }
 
 .form-control::placeholder {
@@ -332,7 +339,7 @@ label {
 
 /* Delicate row distinction: alternating tint + subtle border */
 .current-assignments-table tbody tr:nth-child(even) td {
-    background-color: rgba(45, 90, 74, 0.03);
+    background-color: rgba(var(--primary-rgb), 0.03);
 }
 
 .current-assignments-table tbody tr:hover td {
@@ -413,7 +420,7 @@ body.is-dragging-pill .assignment-pill[draggable="true"] {
 td.drop-target-valid {
     outline: 2px dashed var(--primary);
     outline-offset: -2px;
-    background-color: rgba(45, 90, 74, 0.08);
+    background-color: rgba(var(--primary-rgb), 0.08);
 }
 
 td.drop-target-invalid {
@@ -454,7 +461,8 @@ td.drop-target-invalid {
 }
 
 .student-name { font-weight: 500; }
-.student-email { font-size: 0.75rem; color: var(--text-muted); }
+.student-email { font-size: var(--font-size-sm); color: var(--text-muted); }
+.student-email-inline { font-size: var(--font-size-muted); color: var(--text-muted); }
 .student-fields { font-size: 0.8rem; color: var(--text-muted); }
 .assignment-complete-icon { color: var(--primary); }
 
@@ -469,7 +477,7 @@ td.drop-target-invalid {
     padding: 0.4rem;
     border-radius: var(--radius);
     background-color: var(--surface);
-    border: 1px solid rgba(45, 90, 74, 0.12);
+    border: 1px solid rgba(var(--primary-rgb), 0.12);
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -479,18 +487,18 @@ td.drop-target-invalid {
 
 .assignment-card:hover {
     background-color: var(--surface-alt);
-    border-color: rgba(45, 90, 74, 0.25);
-    box-shadow: 0 2px 8px rgba(45, 90, 74, 0.08);
+    border-color: rgba(var(--primary-rgb), 0.25);
+    box-shadow: 0 2px 8px rgba(var(--primary-rgb), 0.08);
 }
 
 /* Unassigned שיבוץ cells: subtle slot background under the card */
 .cell-assign-slot {
-    background-color: rgba(45, 90, 74, 0.04);
+    background-color: rgba(var(--primary-rgb), 0.04);
     transition: background-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .cell-assign-slot:hover {
-    background-color: rgba(45, 90, 74, 0.09);
+    background-color: rgba(var(--primary-rgb), 0.09);
 }
 
 .cell-assign-slot .assignment-card {
@@ -780,6 +788,37 @@ td.red {
 
 .beige-background {
     background-color: rgba(231, 231, 225, 0.3);
+}
+
+/* JMC-style utility classes (templates) */
+.highlight-name {
+    background-color: var(--primary-light);
+    padding: 2px 4px;
+    border-radius: var(--radius-sm);
+}
+.historic-table-alt {
+    background-color: var(--historic-bg);
+}
+.text-success-icon {
+    color: var(--primary);
+}
+.font-size-65 {
+    font-size: 65%;
+}
+
+/* Historic assignments table: instructor pill (background from template) */
+.historic-assignment-pill {
+    border: 1px solid var(--border);
+    font-size: 14px;
+    max-width: 140px;
+    padding: 4px;
+    border-radius: var(--radius-sm);
+    margin: 4px auto 0;
+    text-align: center;
+    min-height: 34px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
 /* Table scroll */
