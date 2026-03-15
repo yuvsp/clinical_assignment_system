@@ -17,7 +17,7 @@ depends_on = None
 
 def upgrade():
     with op.batch_alter_table('clinical_instructor', schema=None) as batch_op:
-        batch_op.add_column(sa.Column('is_active', sa.Boolean(), nullable=True, server_default=sa.text('1')))
+        batch_op.add_column(sa.Column('is_active', sa.Boolean(), nullable=True, server_default=sa.text('true')))
 
 
 def downgrade():
