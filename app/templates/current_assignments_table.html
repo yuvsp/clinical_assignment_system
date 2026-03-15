@@ -144,6 +144,8 @@
 </table>
 </div>
 
+<script type="application/json" id="relevant-instructors-bulk">{{ relevant_instructors_bulk | tojson }}</script>
+
 <script>
 function toggleSemester() {
     const toggle = document.getElementById('semester_toggle');
@@ -167,6 +169,9 @@ function emailToStudent(studentId, studentEmail, studentName) {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
+    var bulkEl = document.getElementById('relevant-instructors-bulk');
+    window.__relevantInstructorsBulk = bulkEl ? JSON.parse(bulkEl.textContent) : {};
+
     var HOVER_OPEN_MS = 180;
     var LEAVE_CLOSE_MS = 150;
     var hoverOpenTimer = null;
@@ -235,7 +240,13 @@ document.addEventListener('DOMContentLoaded', function() {
             var popoverEl = id ? document.getElementById(id) : null;
             if (!popoverEl) popoverEl = document.querySelector('.popover.show');
             var body = popoverEl ? popoverEl.querySelector('.popover-body') : null;
-            if (body) fetchInstructors(btn.dataset.studentId, btn.dataset.day, body);
+            if (body) {
+                if (window.__relevantInstructorsBulk && window.__relevantInstructorsBulk[btn.dataset.studentId]) {
+                    renderRelevantFromCache(btn.dataset.studentId, btn.dataset.day, body);
+                } else {
+                    fetchInstructors(btn.dataset.studentId, btn.dataset.day, body);
+                }
+            }
 
             if (popoverEl && !popoverEl.hasAttribute('data-assign-popover-bound')) {
                 popoverEl.setAttribute('data-assign-popover-bound', '1');
