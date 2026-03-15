@@ -1,15 +1,22 @@
 import os
-import platform
+
+try:
+    from sqlalchemy.pool import NullPool
+except ImportError:
+    NullPool = None
+
 
 class Config:
-    # Determine the operating system
-    if platform.system() == 'Windows':
-        # Windows: Use a relative path or a Windows-specific absolute path
-        BASE_DIR = os.path.abspath(os.path.dirname(__file__))
-        SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URL', f'sqlite:///{os.path.join(BASE_DIR, "clinical_assignment.db")}')
-    else:
-        # Linux/Unix: Use the absolute path suitable for production
-        SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URL', 'sqlite:////data/clinical_assignment.db')
-
+    BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+    _default_sqlite = f"sqlite:///{os.path.join(BASE_DIR, 'clinical_assignment.db')}"
+    SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL", _default_sqlite)
     SQLALCHEMY_TRACK_MODIFICATIONS = False
-    SECRET_KEY = os.urandom(24)
+    SECRET_KEY = os.getenv("SECRET_KEY") or os.urandom(24).hex()
+    DEBUG = os.getenv("FLASK_DEBUG", "0").lower() in ("1", "true", "yes")
+
+    # Use NullPool with Supabase transaction pooler (port 6543) to avoid connection limits
+    _uri = os.getenv("DATABASE_URL", "")
+    if _uri and _uri.startswith(("postgresql://", "postgres://")) and NullPool is not None:
+        SQLALCHEMY_ENGINE_OPTIONS = {"poolclass": NullPool}
+    else:
+        SQLALCHEMY_ENGINE_OPTIONS = {}

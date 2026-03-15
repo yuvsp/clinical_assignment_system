@@ -2,7 +2,7 @@
 
 {% block content %}
 <h1 class="mb-4 text-right">הוסף תחום</h1>
-<form method="post" dir="rtl">
+<form method="post" action="{{ url_for('main.add_field') }}" dir="rtl" class="card-form">
     <div class="form-group">
         <label for="name" class="float-right">שם התחום:</label>
         <input type="text" class="form-control" id="name" name="name" required>

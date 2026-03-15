@@ -1,45 +1,84 @@
+/**
+ * Build suggestions content for a student+day and optionally show in a popover.
+ * If popoverEl is given, content is rendered there and relevant (green) items are forms that POST to /assign_direct.
+ */
 function fetchInstructors(studentId, day, tooltipElement) {
-    fetch(`/relevant_instructors/${studentId}?day=${day}`)
+    fetch(`/relevant_instructors/${studentId}?day=${encodeURIComponent(day)}`)
         .then(response => response.json())
         .then(data => {
-            // Clear the tooltip content
-            tooltipElement.innerHTML = '<strong>שיבוצים רלוונטיים:</strong><br>';  // Add <br> after title
-            
-            // Add relevant instructors for the specific day
-            data.relevant_instructors.forEach(instructor => {
-                if (instructor.day === day) {  // Filter by day
-                    let p = document.createElement('p');
-                    p.classList.add('green-background');
-                    p.textContent = `${instructor.name} - ${instructor.area_of_expertise}`;
-                    tooltipElement.appendChild(p);
-                }
+            tooltipElement.innerHTML = '';
+            tooltipElement.dir = 'rtl';
+
+            var strong = document.createElement('strong');
+            strong.textContent = 'שיבוצים רלוונטיים:';
+            tooltipElement.appendChild(strong);
+            tooltipElement.appendChild(document.createElement('br'));
+
+            var relevantForDay = (data.relevant_instructors || []).filter(function (instructor) { return instructor.day === day; });
+            relevantForDay.forEach(function (instructor) {
+                var form = document.createElement('form');
+                form.method = 'post';
+                form.action = '/assign_direct';
+                form.style.marginBottom = '4px';
+
+                var inputStudent = document.createElement('input');
+                inputStudent.type = 'hidden';
+                inputStudent.name = 'student_id';
+                inputStudent.value = String(studentId);
+                form.appendChild(inputStudent);
+
+                var inputInstructor = document.createElement('input');
+                inputInstructor.type = 'hidden';
+                inputInstructor.name = 'instructor_id';
+                inputInstructor.value = String(instructor.id);
+                form.appendChild(inputInstructor);
+
+                var inputDay = document.createElement('input');
+                inputDay.type = 'hidden';
+                inputDay.name = 'assigned_day';
+                inputDay.value = day;
+                form.appendChild(inputDay);
+
+                var btn = document.createElement('button');
+                btn.type = 'submit';
+                btn.className = 'btn btn-link btn-assign-suggestion green-background p-1 text-start w-100';
+                btn.textContent = instructor.name + ' – ' + instructor.area_of_expertise;
+                form.appendChild(btn);
+
+                tooltipElement.appendChild(form);
             });
 
-            tooltipElement.innerHTML += '<strong>לא רלוונטי:</strong><br>';  // Add <br> after title
-            
-            // Add irrelevant instructors for the specific day
-            data.irrelevant_instructors.forEach(instructor => {
-                if (instructor.day === day) {  // Filter by day
-                    let p = document.createElement('p');
-                    
-                    if (instructor.reason === "הקלינאית תפוסה ביום זה") {
-                        p.style.textDecoration = 'line-through';
-                        p.classList.add('red-background');
-                    }
-                    if (instructor.reason === "תחום לא מועדף של הסטודנטית") {
-                        p.classList.add('yellow-background');
-                    }
-                    p.textContent = `${instructor.name} - ${instructor.area_of_expertise} (${instructor.reason})`;
-                    tooltipElement.appendChild(p);
+            var strong2 = document.createElement('strong');
+            strong2.textContent = 'לא רלוונטי:';
+            strong2.style.display = 'block';
+            strong2.style.marginTop = '8px';
+            tooltipElement.appendChild(strong2);
+            tooltipElement.appendChild(document.createElement('br'));
+
+            var irrelevantForDay = (data.irrelevant_instructors || []).filter(function (instructor) { return instructor.day === day; });
+            irrelevantForDay.forEach(function (instructor) {
+                var p = document.createElement('p');
+                p.className = 'small mb-1';
+                if (instructor.reason === 'הקלינאית תפוסה ביום זה') {
+                    p.style.textDecoration = 'line-through';
+                    p.classList.add('red-background');
                 }
+                if (instructor.reason === 'תחום לא מועדף של הסטודנטית') {
+                    p.classList.add('yellow-background');
+                }
+                p.textContent = instructor.name + ' – ' + instructor.area_of_expertise + ' (' + (instructor.reason || '') + ')';
+                tooltipElement.appendChild(p);
             });
 
-            // Handle case when no instructors are available
-            if (!tooltipElement.innerHTML.includes('p')) {
-                tooltipElement.innerHTML += '<p>אין מדריכים רלוונטיים ליום זה</p>';
+            if (relevantForDay.length === 0 && irrelevantForDay.length === 0) {
+                var msg = document.createElement('p');
+                msg.className = 'small text-muted mb-0';
+                msg.textContent = 'אין מדריכים רלוונטיים ליום זה';
+                tooltipElement.appendChild(msg);
             }
         })
-        .catch(error => {
+        .catch(function (error) {
             console.error('Error fetching instructors:', error);
+            tooltipElement.innerHTML = '<p class="small text-danger mb-0">שגיאה בטעינה</p>';
         });
 }

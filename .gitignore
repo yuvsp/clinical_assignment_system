@@ -21,3 +21,4 @@ instance/your_database.db
 instance/your_database.db
 *.db
 client_secrets.json
+.env
