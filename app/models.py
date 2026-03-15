@@ -50,6 +50,12 @@ class Field(db.Model):
     color = db.Column(db.String(7), nullable=False, default='#FFFFFF')  # Default to white
 
 
+class AppSetting(db.Model):
+    """Key-value store for app-wide settings (e.g. instructor email template)."""
+    __tablename__ = 'app_setting'
+    key = db.Column(db.String(100), primary_key=True)
+    value = db.Column(db.Text, nullable=True)
+
 
 ############################################################################
 class ArchivedSnapshot(db.Model):

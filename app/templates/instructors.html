@@ -12,6 +12,36 @@
             <input type="file" name="file" class="upload-file-overlay" required onchange="this.form.submit()">
         </span>
     </form>
+    <button type="button" class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#emailTemplateModal">אימייל טמפלייט</button>
+</div>
+
+<div class="modal fade" id="emailTemplateModal" tabindex="-1" aria-labelledby="emailTemplateModalLabel" aria-hidden="true" dir="rtl">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="emailTemplateModalLabel">תבנית אימייל לקלינאיות</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="סגור"></button>
+            </div>
+            <div class="modal-body text-end">
+                <p class="text-muted small mb-2">השתמשו ב־<code>{name}</code> בתחילת ההודעה — יוחלף בשם הקלינאית.</p>
+                <div class="mb-3">
+                    <label for="emailTemplateStart" class="form-label">התחלה</label>
+                    <textarea class="form-control" id="emailTemplateStart" rows="3" placeholder="שלום {name},&#10;&#10;"></textarea>
+                </div>
+                <div class="mb-3">
+                    <label for="emailTemplateEnd" class="form-label">סיום</label>
+                    <textarea class="form-control" id="emailTemplateEnd" rows="3" placeholder="שיהיה בהצלחה,&#10;רון"></textarea>
+                </div>
+                <label class="form-label">תצוגה מקדימה</label>
+                <div id="emailTemplatePreview" class="border rounded p-3 bg-light text-end" dir="rtl" style="white-space: pre-wrap; min-height: 6em;"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" id="emailTemplateResetBtn">איפוס לברירת מחדל</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ביטול</button>
+                <button type="button" class="btn btn-primary" id="emailTemplateSaveBtn">שמירה</button>
+            </div>
+        </div>
+    </div>
 </div>
 <div class="table-container">
     <table class="table table-bordered instructors-table" dir="rtl">
@@ -95,6 +125,47 @@
 (function() {
     if (window.location.pathname !== '/instructors') return;
 
+    var DEFAULT_START = 'שלום {name},\n\n';
+    var DEFAULT_END = 'שיהיה בהצלחה,\nרון';
+    var MIDDLE = 'השיבוצים עבור שפה ודיבור לסמסטר הקרוב הם: ';
+    var cachedTemplate = { start: '', end: '' };
+
+    function buildBody(start, end, name, assignedNames) {
+        var s = (start != null && start !== '') ? start : DEFAULT_START;
+        var e = (end != null && end !== '') ? end : DEFAULT_END;
+        return (s.replace(/\{name\}/g, name || '') + MIDDLE + (assignedNames || '') + '\n\n' + e);
+    }
+
+    function updatePreview() {
+        var startEl = document.getElementById('emailTemplateStart');
+        var endEl = document.getElementById('emailTemplateEnd');
+        var previewEl = document.getElementById('emailTemplatePreview');
+        if (!startEl || !endEl || !previewEl) return;
+        var start = startEl.value.trim();
+        var end = endEl.value.trim();
+        var preview = buildBody(start || DEFAULT_START, end || DEFAULT_END, 'שם הקלינאית', 'שם1, שם2');
+        previewEl.textContent = preview;
+    }
+
+    function loadTemplate() {
+        fetch('/api/instructor_email_template')
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                cachedTemplate.start = data.start || '';
+                cachedTemplate.end = data.end || '';
+                var startEl = document.getElementById('emailTemplateStart');
+                var endEl = document.getElementById('emailTemplateEnd');
+                if (startEl) startEl.value = cachedTemplate.start;
+                if (endEl) endEl.value = cachedTemplate.end;
+                updatePreview();
+            })
+            .catch(function() {
+                if (document.getElementById('emailTemplateStart')) document.getElementById('emailTemplateStart').value = DEFAULT_START;
+                if (document.getElementById('emailTemplateEnd')) document.getElementById('emailTemplateEnd').value = DEFAULT_END;
+                updatePreview();
+            });
+    }
+
     document.addEventListener('click', function(ev) {
         var btn = ev.target.closest('.btn-email-instructor');
         if (!btn) return;
@@ -102,11 +173,7 @@
         var email = btn.getAttribute('data-instructor-email') || '';
         var assignedNames = btn.getAttribute('data-assigned-names') || '';
         var subject = encodeURIComponent('שיבוץ סטודנטים - ' + name);
-        var body = encodeURIComponent(
-            'שלום ' + name + ',\n\n' +
-            'השיבוצים עבור שפה ודיבור לסמסטר הקרוב הם: ' + assignedNames + '\n\n' +
-            'שיהיה בהצלחה,\nרון'
-        );
+        var body = encodeURIComponent(buildBody(cachedTemplate.start, cachedTemplate.end, name, assignedNames));
         var gmailUrl = 'https://mail.google.com/mail/?view=cm&fs=1&to=' + encodeURIComponent(email) + '&su=' + subject + '&body=' + body;
         window.open(gmailUrl, '_blank');
     });
@@ -170,6 +237,57 @@
     }
 
     document.addEventListener('DOMContentLoaded', function() {
+        loadTemplate();
+
+        var startEl = document.getElementById('emailTemplateStart');
+        var endEl = document.getElementById('emailTemplateEnd');
+        if (startEl) startEl.addEventListener('input', updatePreview);
+        if (endEl) endEl.addEventListener('input', updatePreview);
+
+        var modalEl = document.getElementById('emailTemplateModal');
+        if (modalEl) {
+            modalEl.addEventListener('shown.bs.modal', function() {
+                loadTemplate();
+            });
+        }
+
+        var saveBtn = document.getElementById('emailTemplateSaveBtn');
+        if (saveBtn) {
+            saveBtn.addEventListener('click', function() {
+                var start = (document.getElementById('emailTemplateStart') || {}).value || '';
+                var end = (document.getElementById('emailTemplateEnd') || {}).value || '';
+                fetch('/api/instructor_email_template', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ start: start, end: end })
+                })
+                .then(function(r) { return r.json().then(function(j) { return { ok: r.ok, json: j }; }); })
+                .then(function(res) {
+                    if (res.ok && res.json.success) {
+                        cachedTemplate.start = start;
+                        cachedTemplate.end = end;
+                        var modalEl = document.getElementById('emailTemplateModal');
+                        if (window.bootstrap && modalEl) {
+                            var modal = window.bootstrap.Modal.getInstance(modalEl);
+                            if (modal) modal.hide();
+                        }
+                    } else if (res.json.error) alert(res.json.error);
+                })
+                .catch(function() { alert('שגיאה בשמירה'); });
+            });
+        }
+
+        var resetBtn = document.getElementById('emailTemplateResetBtn');
+        if (resetBtn) {
+            resetBtn.addEventListener('click', function() {
+                var startEl = document.getElementById('emailTemplateStart');
+                var endEl = document.getElementById('emailTemplateEnd');
+                if (startEl) startEl.value = DEFAULT_START;
+                if (endEl) endEl.value = DEFAULT_END;
+                updatePreview();
+            });
+        }
+
         var table = document.querySelector('.instructors-table');
         if (!table) return;
 

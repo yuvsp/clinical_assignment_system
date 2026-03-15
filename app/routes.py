@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, send_file, jsonify, flash
 from werkzeug.utils import secure_filename
 from app import db
-from app.models import ClinicalInstructor, Student, Assignment, Field, ArchivedSnapshot, ArchivedAssignment
+from app.models import ClinicalInstructor, Student, Assignment, Field, ArchivedSnapshot, ArchivedAssignment, AppSetting
 from app.pdf_utils import generate_student_pdf, get_student_email_body
 import pandas as pd
 import io
@@ -1198,6 +1198,46 @@ def api_email_body(student_id):
     body = get_student_email_body(student)
     subject = f"שיבוץ שפה ודיבור - {student.name}"
     return jsonify({'subject': subject, 'body': body})
+
+
+INSTRUCTOR_EMAIL_TEMPLATE_START_KEY = 'instructor_email_template_start'
+INSTRUCTOR_EMAIL_TEMPLATE_END_KEY = 'instructor_email_template_end'
+
+
+def _get_setting(key, default=''):
+    row = AppSetting.query.get(key)
+    return (row.value if row and row.value is not None else default) or default
+
+
+def _set_setting(key, value):
+    row = AppSetting.query.get(key)
+    if row:
+        row.value = value
+    else:
+        db.session.add(AppSetting(key=key, value=value))
+    db.session.commit()
+
+
+@bp.route('/api/instructor_email_template', methods=['GET', 'POST'])
+def api_instructor_email_template():
+    if request.method == 'GET':
+        start = _get_setting(INSTRUCTOR_EMAIL_TEMPLATE_START_KEY)
+        end = _get_setting(INSTRUCTOR_EMAIL_TEMPLATE_END_KEY)
+        return jsonify({'start': start, 'end': end})
+    # POST
+    data = request.get_json()
+    if not data:
+        return jsonify({'success': False, 'error': 'Missing JSON body'}), 400
+    start = data.get('start')
+    end = data.get('end')
+    if start is None and end is None:
+        return jsonify({'success': False, 'error': 'Missing start or end'}), 400
+    if start is not None:
+        _set_setting(INSTRUCTOR_EMAIL_TEMPLATE_START_KEY, str(start))
+    if end is not None:
+        _set_setting(INSTRUCTOR_EMAIL_TEMPLATE_END_KEY, str(end))
+    return jsonify({'success': True})
+
 
 #########################################
 @bp.route('/archive_assignments', methods=['POST'])
