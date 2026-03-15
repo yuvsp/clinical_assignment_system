@@ -4,8 +4,10 @@
     --primary-hover: #134a72;
     --primary-light: #e8eef4;
     --primary-rgb: 13, 59, 92;
-    --secondary: #c9a227;
-    --secondary-hover: #b8921f;
+    --secondary: rgba(255, 193, 81, 1);
+    --secondary-hover: rgba(235, 178, 65, 1);
+    --secondary-rgb: 255, 193, 81;
+    --secondary-light: rgba(255, 193, 81, 0.2);
     --surface: #ffffff;
     --surface-alt: #f4f6f8;
     --border: #dde1e5;
@@ -117,23 +119,53 @@ h1 {
 }
 
 .btn-primary {
-    background-color: var(--primary) !important;
-    color: var(--surface) !important;
+    background-color: var(--secondary) !important;
+    color: var(--text) !important;
 }
 
 .btn-primary:hover {
-    background-color: var(--primary-hover) !important;
-    color: var(--surface) !important;
+    background-color: var(--secondary-hover) !important;
+    color: var(--text) !important;
 }
 
 .btn-secondary {
-    background-color: var(--text-muted) !important;
-    color: var(--surface) !important;
+    background-color: var(--secondary) !important;
+    color: var(--text) !important;
+}
+
+.btn-secondary:hover {
+    background-color: var(--secondary-hover) !important;
+    color: var(--text) !important;
 }
 
 .btn-success {
-    background-color: var(--primary) !important;
-    color: var(--surface) !important;
+    background-color: var(--secondary) !important;
+    color: var(--text) !important;
+}
+
+.btn-success:hover {
+    background-color: var(--secondary-hover) !important;
+    color: var(--text) !important;
+}
+
+.btn-warning {
+    background-color: var(--secondary) !important;
+    color: var(--text) !important;
+}
+
+.btn-warning:hover {
+    background-color: var(--secondary-hover) !important;
+    color: var(--text) !important;
+}
+
+.btn-info {
+    background-color: var(--secondary) !important;
+    color: var(--text) !important;
+}
+
+.btn-info:hover {
+    background-color: var(--secondary-hover) !important;
+    color: var(--text) !important;
 }
 
 .btn-danger {
@@ -143,26 +175,6 @@ h1 {
 
 .btn-danger:hover {
     background-color: var(--danger-hover) !important;
-    color: var(--surface) !important;
-}
-
-.btn-warning {
-    background-color: var(--primary) !important;
-    color: var(--surface) !important;
-}
-
-.btn-warning:hover {
-    background-color: var(--primary-hover) !important;
-    color: var(--surface) !important;
-}
-
-.btn-info {
-    background-color: var(--primary) !important;
-    color: var(--surface) !important;
-}
-
-.btn-info:hover {
-    background-color: var(--primary-hover) !important;
     color: var(--surface) !important;
 }
 
@@ -192,12 +204,12 @@ h1 {
 .btn-primary.striped {
     background: repeating-linear-gradient(
         135deg,
-        rgba(var(--primary-rgb), 0.15),
-        rgba(var(--primary-rgb), 0.15) 8px,
+        rgba(var(--secondary-rgb), 0.2),
+        rgba(var(--secondary-rgb), 0.2) 8px,
         transparent 8px,
         transparent 16px
     ) !important;
-    border: 1px solid var(--primary) !important;
+    border: 1px solid var(--secondary) !important;
     color: var(--text) !important;
     min-height: 64px;
 }
@@ -205,12 +217,12 @@ h1 {
 .btn-primary.striped:hover {
     background: repeating-linear-gradient(
         135deg,
-        rgba(var(--primary-rgb), 0.3),
-        rgba(var(--primary-rgb), 0.3) 8px,
+        rgba(var(--secondary-rgb), 0.35),
+        rgba(var(--secondary-rgb), 0.35) 8px,
         transparent 8px,
         transparent 16px
     ) !important;
-    border-color: var(--primary) !important;
+    border-color: var(--secondary-hover) !important;
     color: var(--text) !important;
 }
 
@@ -218,15 +230,15 @@ h1 {
 .current-assignments-table .btn-assign-trigger.btn-primary.striped {
     min-height: 2.5rem;
     padding: 0.35rem 0.65rem;
-    background: var(--primary-light) !important;
-    border: 1px solid var(--primary) !important;
-    color: var(--primary) !important;
+    background: var(--secondary-light) !important;
+    border: 1px solid var(--secondary) !important;
+    color: var(--text) !important;
 }
 
 .current-assignments-table .btn-assign-trigger.btn-primary.striped:hover {
-    background: rgba(var(--primary-rgb), 0.15) !important;
-    border-color: var(--primary) !important;
-    color: var(--primary) !important;
+    background: rgba(var(--secondary-rgb), 0.3) !important;
+    border-color: var(--secondary-hover) !important;
+    color: var(--text) !important;
 }
 
 /* Forms – default: card-style for consistent layout and separation */
