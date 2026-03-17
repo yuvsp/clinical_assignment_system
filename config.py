@@ -20,3 +20,11 @@ class Config:
         SQLALCHEMY_ENGINE_OPTIONS = {"poolclass": NullPool}
     else:
         SQLALCHEMY_ENGINE_OPTIONS = {}
+
+    # Mail (for sending rich student assignment emails)
+    MAIL_SERVER = os.getenv("MAIL_SERVER", "smtp.gmail.com")
+    MAIL_PORT = int(os.getenv("MAIL_PORT", "587"))
+    MAIL_USE_TLS = os.getenv("MAIL_USE_TLS", "1").lower() in ("1", "true", "yes")
+    MAIL_USERNAME = os.getenv("MAIL_USERNAME", "")
+    MAIL_PASSWORD = os.getenv("MAIL_PASSWORD", "")
+    MAIL_DEFAULT_SENDER = os.getenv("MAIL_DEFAULT_SENDER", MAIL_USERNAME or None)

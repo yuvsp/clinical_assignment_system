@@ -92,9 +92,6 @@
                         </small>
                     </div>
                     <div class="student-name-actions" aria-hidden="true">
-                        <button type="button" class="btn btn-icon" onclick="printToPDF('{{ student_data.id }}')" title="ייצוא PDF" aria-label="ייצוא PDF">
-                            <i class="fas fa-print"></i>
-                        </button>
                         <button type="button" class="btn btn-icon" onclick="emailToStudent('{{ student_data.id }}', '{{ student_data.email }}', '{{ student_data.name }}')" title="שלח אימייל" aria-label="שלח אימייל">
                             <i class="fas fa-envelope"></i>
                         </button>
@@ -153,18 +150,28 @@ function toggleSemester() {
     window.location.href = `{{ url_for('main.current_assignments_table') }}?semester=${semester}`;
 }
 
-function printToPDF(studentId) {
-    window.location.href = `/download_pdf/${studentId}`;
-}
-
 function emailToStudent(studentId, studentEmail, studentName) {
-    fetch(`/api/email_body/${studentId}`)
-        .then(response => response.json())
+    fetch('/api/send_student_email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ student_id: parseInt(studentId, 10), attach_pdf: true })
+    })
+        .then(function(response) {
+            return response.json().then(function(data) {
+                if (!response.ok) throw { status: response.status, data: data };
+                return data;
+            }, function() {
+                throw { status: response.status, data: null };
+            });
+        })
         .then(function(data) {
-            const subject = encodeURIComponent(data.subject);
-            const body = encodeURIComponent(data.body);
-            const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(studentEmail)}&su=${subject}&body=${body}`;
-            window.open(gmailUrl, '_blank');
+            if (data && data.success) {
+                alert('האימייל נשלח בהצלחה אל ' + studentName + ' (' + studentEmail + ').');
+            }
+        })
+        .catch(function(err) {
+            var msg = (err.data && err.data.error) ? err.data.error : (err.message || 'שגיאה');
+            alert('שגיאה: ' + msg);
         });
 }
 

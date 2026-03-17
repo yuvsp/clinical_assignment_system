@@ -1,8 +1,9 @@
-from flask import Blueprint, render_template, request, redirect, url_for, send_file, jsonify, flash
+from flask import Blueprint, render_template, request, redirect, url_for, send_file, jsonify, flash, current_app
+from flask_mail import Message
 from werkzeug.utils import secure_filename
-from app import db
+from app import db, mail
 from app.models import ClinicalInstructor, Student, Assignment, Field, ArchivedSnapshot, ArchivedAssignment, AppSetting
-from app.pdf_utils import generate_student_pdf, get_student_email_body
+from app.email_utils import get_student_email_html
 import pandas as pd
 import io
 import os
@@ -1174,7 +1175,7 @@ def current_assignments_table():
         student_assignments=sorted_students,
         semester=semester,
         instructor_colors=instructor_colors,
-        relevant_instructors_bulk=relevant_instructors_bulk
+        relevant_instructors_bulk=relevant_instructors_bulk,
     )
 
 def determine_allocation(student):
@@ -1185,19 +1186,32 @@ def determine_allocation(student):
     else:
         return None  # Handle unexpected cases if necessary
 
-@bp.route('/download_pdf/<int:student_id>', methods=['GET'])
-def download_pdf(student_id):
-    student = Student.query.get_or_404(student_id)
-    pdf = generate_student_pdf(student)
-    return send_file(pdf, download_name=f"שיבוצים שפה ודיבור {student.name}.pdf", as_attachment=True)
-
-
-@bp.route('/api/email_body/<int:student_id>', methods=['GET'])
-def api_email_body(student_id):
-    student = Student.query.get_or_404(student_id)
-    body = get_student_email_body(student)
+@bp.route('/api/send_student_email', methods=['POST'])
+def send_student_email():
+    """Send rich HTML assignment email to student (RTL, table, header/footer images)."""
+    if not current_app.config.get('MAIL_USERNAME'):
+        return jsonify({'success': False, 'error': 'דוא"ל לא מוגדר. הגדר MAIL_USERNAME ו-MAIL_PASSWORD.'}), 503
+    data = request.get_json(force=True, silent=True) or {}
+    student_id = data.get('student_id')
+    if student_id is None:
+        return jsonify({'success': False, 'error': 'חסר student_id'}), 400
+    student = Student.query.get(student_id)
+    if not student:
+        return jsonify({'success': False, 'error': 'סטודנט לא נמצא'}), 404
+    html_body, plain_body = get_student_email_html(student)
     subject = f"שיבוץ שפה ודיבור - {student.name}"
-    return jsonify({'subject': subject, 'body': body})
+    msg = Message(
+        subject=subject,
+        recipients=[student.email],
+        body=plain_body,
+        html=html_body,
+        sender=current_app.config.get('MAIL_DEFAULT_SENDER') or current_app.config.get('MAIL_USERNAME'),
+    )
+    try:
+        mail.send(msg)
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+    return jsonify({'success': True})
 
 
 INSTRUCTOR_EMAIL_TEMPLATE_START_KEY = 'instructor_email_template_start'
