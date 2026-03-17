@@ -1,9 +1,19 @@
-from flask import Blueprint, render_template, request, redirect, url_for, send_file, jsonify, flash, current_app
-from flask_mail import Message
+from flask import Blueprint, render_template, request, redirect, url_for, send_file, jsonify, flash, current_app, session
 from werkzeug.utils import secure_filename
-from app import db, mail
+from app import db
 from app.models import ClinicalInstructor, Student, Assignment, Field, ArchivedSnapshot, ArchivedAssignment, AppSetting
 from app.email_utils import get_student_email_html
+from app.gmail_oauth import (
+    build_gmail_flow,
+    clear_gmail_credentials,
+    gmail_oauth_configured,
+    get_gmail_connection_status,
+    get_gmail_profile_email,
+    revoke_gmail_credentials,
+    send_gmail_message,
+    store_gmail_credentials,
+    set_gmail_account_email,
+)
 import pandas as pd
 import io
 import os
@@ -1176,6 +1186,7 @@ def current_assignments_table():
         semester=semester,
         instructor_colors=instructor_colors,
         relevant_instructors_bulk=relevant_instructors_bulk,
+        gmail_connection=get_gmail_connection_status(),
     )
 
 def determine_allocation(student):
@@ -1186,11 +1197,87 @@ def determine_allocation(student):
     else:
         return None  # Handle unexpected cases if necessary
 
+
+@bp.route('/api/gmail/connect')
+def gmail_connect():
+    if not gmail_oauth_configured():
+        flash('Gmail OAuth לא מוגדר עדיין. יש להגדיר GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET ו-GOOGLE_REDIRECT_URI.', 'danger')
+        return redirect(url_for('main.current_assignments_table'))
+
+    next_url = request.args.get('next') or url_for('main.current_assignments_table')
+    if not next_url.startswith('/'):
+        next_url = url_for('main.current_assignments_table')
+    session['gmail_oauth_next'] = next_url
+    redirect_uri = current_app.config.get('GOOGLE_REDIRECT_URI') or url_for('main.gmail_oauth_callback', _external=True)
+    flow = build_gmail_flow(redirect_uri=redirect_uri)
+    authorization_url, state = flow.authorization_url(
+        access_type='offline',
+        include_granted_scopes='true',
+        prompt='consent',
+    )
+    session['gmail_oauth_state'] = state
+    return redirect(authorization_url)
+
+
+@bp.route('/api/gmail/callback')
+def gmail_oauth_callback():
+    expected_state = session.get('gmail_oauth_state')
+    received_state = request.args.get('state')
+    if not expected_state or expected_state != received_state:
+        flash('אימות Gmail נכשל. יש לנסות להתחבר מחדש.', 'danger')
+        return redirect(url_for('main.current_assignments_table'))
+
+    redirect_uri = current_app.config.get('GOOGLE_REDIRECT_URI') or url_for('main.gmail_oauth_callback', _external=True)
+    flow = build_gmail_flow(redirect_uri=redirect_uri, state=expected_state)
+
+    try:
+        flow.fetch_token(authorization_response=request.url)
+        credentials = flow.credentials
+        store_gmail_credentials(credentials)
+        account_email = get_gmail_profile_email()
+        set_gmail_account_email(account_email)
+    except Exception as exc:
+        flash(f'לא הצלחנו לחבר את Gmail: {exc}', 'danger')
+        return redirect(url_for('main.current_assignments_table'))
+    finally:
+        session.pop('gmail_oauth_state', None)
+
+    next_url = session.pop('gmail_oauth_next', None) or url_for('main.current_assignments_table')
+    if not next_url.startswith('/'):
+        next_url = url_for('main.current_assignments_table')
+    flash('Gmail חובר בהצלחה.', 'success')
+    return redirect(next_url)
+
+
+@bp.route('/api/gmail/disconnect', methods=['POST'])
+def gmail_disconnect():
+    try:
+        revoke_gmail_credentials()
+    except Exception:
+        clear_gmail_credentials()
+    session.pop('gmail_oauth_state', None)
+    session.pop('gmail_oauth_next', None)
+    flash('החיבור ל-Gmail נותק.', 'info')
+    return redirect(url_for('main.current_assignments_table'))
+
+
 @bp.route('/api/send_student_email', methods=['POST'])
 def send_student_email():
     """Send rich HTML assignment email to student (RTL, table, header/footer images)."""
-    if not current_app.config.get('MAIL_USERNAME'):
-        return jsonify({'success': False, 'error': 'דוא"ל לא מוגדר. הגדר MAIL_USERNAME ו-MAIL_PASSWORD.'}), 503
+    if not gmail_oauth_configured():
+        return jsonify({
+            'success': False,
+            'error': 'Gmail OAuth לא מוגדר. יש להגדיר GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET ו-GOOGLE_REDIRECT_URI.',
+        }), 503
+
+    connection = get_gmail_connection_status()
+    if not connection.get('connected'):
+        return jsonify({
+            'success': False,
+            'error': 'Gmail עדיין לא מחובר. יש ללחוץ על "חיבור Gmail" ולתת הרשאה.',
+            'connect_url': url_for('main.gmail_connect', next=url_for('main.current_assignments_table')),
+        }), 503
+
     data = request.get_json(force=True, silent=True) or {}
     student_id = data.get('student_id')
     if student_id is None:
@@ -1198,20 +1285,18 @@ def send_student_email():
     student = Student.query.get(student_id)
     if not student:
         return jsonify({'success': False, 'error': 'סטודנט לא נמצא'}), 404
-    html_body, plain_body = get_student_email_html(student)
-    subject = f"שיבוץ שפה ודיבור - {student.name}"
-    msg = Message(
-        subject=subject,
-        recipients=[student.email],
-        body=plain_body,
-        html=html_body,
-        sender=current_app.config.get('MAIL_DEFAULT_SENDER') or current_app.config.get('MAIL_USERNAME'),
-    )
     try:
-        mail.send(msg)
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
-    return jsonify({'success': True})
+        html_body, plain_body = get_student_email_html(student)
+        subject = f"שיבוץ שפה ודיבור - {student.name}"
+        response = send_gmail_message(subject, student.email, plain_body, html_body)
+    except RuntimeError as exc:
+        message = str(exc)
+        status_code = 503 if 'not connected' in message.lower() else 500
+        return jsonify({'success': False, 'error': message}), status_code
+    except Exception as exc:
+        return jsonify({'success': False, 'error': str(exc)}), 500
+
+    return jsonify({'success': True, 'message_id': response.get('id')})
 
 
 INSTRUCTOR_EMAIL_TEMPLATE_START_KEY = 'instructor_email_template_start'
