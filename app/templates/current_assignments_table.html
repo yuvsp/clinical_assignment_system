@@ -92,7 +92,13 @@
                         </small>
                     </div>
                     <div class="student-name-actions" aria-hidden="true">
-                        <button type="button" class="btn btn-icon" onclick="emailToStudent('{{ student_data.id }}', '{{ student_data.email }}', '{{ student_data.name }}')" title="שלח אימייל" aria-label="שלח אימייל">
+                        <button type="button" class="btn btn-icon"
+                                data-bs-toggle="modal"
+                                data-bs-target="#sendEmailConfirmModal"
+                                data-student-id="{{ student_data.id }}"
+                                data-student-email="{{ student_data.email | e }}"
+                                data-student-name="{{ student_data.name | e }}"
+                                title="שלח אימייל" aria-label="שלח אימייל">
                             <i class="fas fa-envelope"></i>
                         </button>
                     </div>
@@ -141,6 +147,26 @@
 </table>
 </div>
 
+<!-- Modal to confirm sending a student email -->
+<div class="modal fade" id="sendEmailConfirmModal" tabindex="-1" aria-labelledby="sendEmailConfirmModalLabel" aria-hidden="true" dir="rtl">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="sendEmailConfirmModalLabel">אישור שליחת אימייל</h5>
+      </div>
+      <div class="modal-body">
+        <p class="mb-2">האם לשלוח אימייל לסטודנט/ית הבא/ה?</p>
+        <p class="mb-1"><span class="fw-semibold">שם:</span> <span id="sendEmailConfirmName"></span></p>
+        <p class="mb-0"><span class="fw-semibold">אימייל:</span> <span id="sendEmailConfirmEmail"></span></p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ביטול</button>
+        <button type="button" class="btn btn-primary" id="sendEmailConfirmBtn">שלח אימייל</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script type="application/json" id="relevant-instructors-bulk">{{ relevant_instructors_bulk | tojson }}</script>
 
 <script>
@@ -178,6 +204,34 @@ function emailToStudent(studentId, studentEmail, studentName) {
 document.addEventListener('DOMContentLoaded', function() {
     var bulkEl = document.getElementById('relevant-instructors-bulk');
     window.__relevantInstructorsBulk = bulkEl ? JSON.parse(bulkEl.textContent) : {};
+    var emailConfirmModalEl = document.getElementById('sendEmailConfirmModal');
+    var emailConfirmNameEl = document.getElementById('sendEmailConfirmName');
+    var emailConfirmEmailEl = document.getElementById('sendEmailConfirmEmail');
+    var emailConfirmBtn = document.getElementById('sendEmailConfirmBtn');
+    if (emailConfirmModalEl && emailConfirmBtn) {
+        emailConfirmModalEl.addEventListener('show.bs.modal', function(event) {
+            var triggerBtn = event.relatedTarget;
+            if (!triggerBtn) return;
+            var studentId = triggerBtn.getAttribute('data-student-id') || '';
+            var studentEmail = triggerBtn.getAttribute('data-student-email') || '';
+            var studentName = triggerBtn.getAttribute('data-student-name') || '';
+            emailConfirmModalEl.dataset.studentId = studentId;
+            emailConfirmModalEl.dataset.studentEmail = studentEmail;
+            emailConfirmModalEl.dataset.studentName = studentName;
+            if (emailConfirmNameEl) emailConfirmNameEl.textContent = studentName;
+            if (emailConfirmEmailEl) emailConfirmEmailEl.textContent = studentEmail;
+        });
+        emailConfirmBtn.addEventListener('click', function() {
+            var studentId = emailConfirmModalEl.dataset.studentId || '';
+            var studentEmail = emailConfirmModalEl.dataset.studentEmail || '';
+            var studentName = emailConfirmModalEl.dataset.studentName || '';
+            var modalInstance = bootstrap.Modal.getInstance(emailConfirmModalEl);
+            if (modalInstance) modalInstance.hide();
+            if (studentId) {
+                emailToStudent(studentId, studentEmail, studentName);
+            }
+        });
+    }
 
     var HOVER_OPEN_MS = 180;
     var LEAVE_CLOSE_MS = 150;
