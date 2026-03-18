@@ -2,6 +2,7 @@ import base64
 import hashlib
 import json
 import secrets
+from email.header import Header
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from urllib import error as urllib_error
@@ -210,7 +211,8 @@ def _build_mime_message(subject, to_email, plain_body, html_body, from_email=Non
     if from_email:
         message["From"] = from_email
     message["To"] = to_email
-    message["Subject"] = subject
+    # RFC 2047: raw UTF-8 in Subject breaks in transit (mojibake); Header encodes as =?utf-8?b?...?=
+    message["Subject"] = Header(subject, "utf-8")
     message.attach(MIMEText(plain_body or "", "plain", "utf-8"))
     message.attach(MIMEText(html_body or "", "html", "utf-8"))
     return message
