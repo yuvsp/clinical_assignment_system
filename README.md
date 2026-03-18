@@ -8,7 +8,16 @@ This project is a web application for assigning clinical instructors to students
 2. Create and activate a virtual environment.
 3. Install dependencies with `pip install -r requirements.txt`.
 4. Copy `.env.example` to `.env`.
-5. Configure Google OAuth for Gmail sending:
+5. Apply database migrations (from project root, venv activated):
+
+   ```powershell
+   $env:FLASK_APP = "run.py"
+   flask db upgrade
+   ```
+
+   Use **`flask db upgrade`**, not plain `alembic upgrade head`. Migrations need the Flask app (and `DATABASE_URL` from `.env`). Plain Alembic alone will miss `script_location` or app context.
+
+6. Configure Google OAuth for Gmail sending:
    - Create a Google Cloud project.
    - Enable the Gmail API.
    - Configure the OAuth consent screen and add scopes: **Gmail send** and **Gmail metadata** (metadata is required so the app can read the connected account email via `users.getProfile`).
