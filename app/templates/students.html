@@ -37,7 +37,17 @@
             <td class="text-right">{{ student.preferred_practice_area }}</td>
             <td class="text-right">{{ student.semester }}</td>
             <td class="text-center">
-                <a href="{{ url_for('main.assign_instructor', student_id=student.id) }}" class="btn btn-success">שיבוץ</a>
+                <div class="d-flex flex-wrap gap-2 justify-content-center align-items-center">
+                    <a href="{{ url_for('main.assign_instructor', student_id=student.id) }}" class="btn btn-success">שיבוץ</a>
+                    {% if student.id in student_ids_with_assignments %}
+                    <small class="text-muted d-block w-100">לא ניתן למחוק — יש שיבוצים</small>
+                    {% else %}
+                    <form method="post" action="{{ url_for('main.remove_student', student_id=student.id) }}" class="d-inline"
+                          onsubmit="return confirm('למחוק את ' + {{ student.name|tojson }} + ' מהמערכת? פעולה זו בלתי הפיכה.');">
+                        <button type="submit" class="btn btn-outline-danger btn-sm">מחק סטודנט/ית</button>
+                    </form>
+                    {% endif %}
+                </div>
             </td>
         </tr>
         {% endfor %}

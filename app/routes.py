@@ -178,7 +178,13 @@ def instructor_update_field(instructor_id):
 @bp.route('/students')
 def students_view():
     students = Student.query.all()
-    return render_template('students.html', students=students)
+    assigned_ids = db.session.query(Assignment.student_id).distinct().all()
+    student_ids_with_assignments = {row[0] for row in assigned_ids}
+    return render_template(
+        'students.html',
+        students=students,
+        student_ids_with_assignments=student_ids_with_assignments,
+    )
 
 @bp.route('/fields')
 def fields_view():
@@ -253,6 +259,24 @@ def add_student():
         db.session.commit()
         return redirect(url_for('main.students_view'))
     return render_template('add_student.html', fields=fields)
+
+
+@bp.route('/students/<int:student_id>/remove', methods=['POST'])
+def remove_student(student_id):
+    student = Student.query.get_or_404(student_id)
+    try:
+        if Assignment.query.filter_by(student_id=student_id).count() > 0:
+            flash('לא ניתן למחוק סטודנטית עם שיבוצים קיימים.', 'danger')
+            return redirect(url_for('main.students_view'))
+        name = student.name
+        db.session.delete(student)
+        db.session.commit()
+        flash(f'הסטודנטית {name} נמחקה מהמערכת.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(str(e), 'danger')
+    return redirect(url_for('main.students_view'))
+
 
 @bp.route('/assign/<int:student_id>', methods=['GET', 'POST'])
 def assign_instructor(student_id):
