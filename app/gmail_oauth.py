@@ -1,6 +1,7 @@
 import base64
 import hashlib
 import json
+import secrets
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from urllib import error as urllib_error
@@ -21,6 +22,11 @@ from app.models import AppSetting
 GMAIL_SCOPES = ["https://www.googleapis.com/auth/gmail.send"]
 GMAIL_CREDENTIALS_KEY = "gmail_oauth_credentials"
 GMAIL_ACCOUNT_EMAIL_KEY = "gmail_oauth_account_email"
+
+
+def new_gmail_oauth_code_verifier():
+    """Random PKCE verifier for OAuth (must be reused on authorize + token steps)."""
+    return secrets.token_urlsafe(48)
 
 
 def gmail_oauth_configured():
@@ -78,8 +84,12 @@ def get_gmail_connection_status():
     }
 
 
-def build_gmail_flow(redirect_uri=None, state=None):
-    """Create an OAuth flow configured for the Gmail send scope."""
+def build_gmail_flow(redirect_uri=None, state=None, code_verifier=None):
+    """Create an OAuth flow configured for the Gmail send scope.
+
+    For web apps the authorize and token steps run on different requests; pass
+    the same PKCE ``code_verifier`` on connect and callback (store in session).
+    """
     if not gmail_oauth_configured():
         raise RuntimeError("Missing Google OAuth settings.")
 
@@ -93,7 +103,10 @@ def build_gmail_flow(redirect_uri=None, state=None):
             "redirect_uris": [redirect_uri],
         }
     }
-    flow = Flow.from_client_config(client_config, scopes=GMAIL_SCOPES)
+    flow_kwargs = {}
+    if code_verifier is not None:
+        flow_kwargs["code_verifier"] = code_verifier
+    flow = Flow.from_client_config(client_config, scopes=GMAIL_SCOPES, **flow_kwargs)
     if state is not None:
         flow.state = state
     flow.redirect_uri = redirect_uri

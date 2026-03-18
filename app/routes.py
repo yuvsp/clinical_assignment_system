@@ -9,6 +9,7 @@ from app.gmail_oauth import (
     gmail_oauth_configured,
     get_gmail_connection_status,
     get_gmail_profile_email,
+    new_gmail_oauth_code_verifier,
     revoke_gmail_credentials,
     send_gmail_message,
     store_gmail_credentials,
@@ -1209,7 +1210,9 @@ def gmail_connect():
         next_url = url_for('main.current_assignments_table')
     session['gmail_oauth_next'] = next_url
     redirect_uri = current_app.config.get('GOOGLE_REDIRECT_URI') or url_for('main.gmail_oauth_callback', _external=True)
-    flow = build_gmail_flow(redirect_uri=redirect_uri)
+    code_verifier = new_gmail_oauth_code_verifier()
+    session['gmail_oauth_code_verifier'] = code_verifier
+    flow = build_gmail_flow(redirect_uri=redirect_uri, code_verifier=code_verifier)
     authorization_url, state = flow.authorization_url(
         access_type='offline',
         include_granted_scopes='true',
@@ -1224,11 +1227,24 @@ def gmail_oauth_callback():
     expected_state = session.get('gmail_oauth_state')
     received_state = request.args.get('state')
     if not expected_state or expected_state != received_state:
+        session.pop('gmail_oauth_code_verifier', None)
         flash('אימות Gmail נכשל. יש לנסות להתחבר מחדש.', 'danger')
         return redirect(url_for('main.current_assignments_table'))
 
+    code_verifier = session.pop('gmail_oauth_code_verifier', None)
+    if not code_verifier:
+        flash(
+            'חסר נתוני אימות OAuth (PKCE). יש ללחוץ שוב על חיבור Gmail.',
+            'danger',
+        )
+        return redirect(url_for('main.current_assignments_table'))
+
     redirect_uri = current_app.config.get('GOOGLE_REDIRECT_URI') or url_for('main.gmail_oauth_callback', _external=True)
-    flow = build_gmail_flow(redirect_uri=redirect_uri, state=expected_state)
+    flow = build_gmail_flow(
+        redirect_uri=redirect_uri,
+        state=expected_state,
+        code_verifier=code_verifier,
+    )
 
     try:
         flow.fetch_token(authorization_response=request.url)
@@ -1241,6 +1257,7 @@ def gmail_oauth_callback():
         return redirect(url_for('main.current_assignments_table'))
     finally:
         session.pop('gmail_oauth_state', None)
+        session.pop('gmail_oauth_code_verifier', None)
 
     next_url = session.pop('gmail_oauth_next', None) or url_for('main.current_assignments_table')
     if not next_url.startswith('/'):
@@ -1256,6 +1273,7 @@ def gmail_disconnect():
     except Exception:
         clear_gmail_credentials()
     session.pop('gmail_oauth_state', None)
+    session.pop('gmail_oauth_code_verifier', None)
     session.pop('gmail_oauth_next', None)
     flash('החיבור ל-Gmail נותק.', 'info')
     return redirect(url_for('main.current_assignments_table'))
