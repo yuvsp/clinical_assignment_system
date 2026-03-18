@@ -667,7 +667,7 @@ def process_student_file(filepath):
                 raise ValueError(f"Missing column: {col}")
         
         # Ensure email defaults to "add_email@gmail.com" if missing
-        df['Email'].fillna("add_email@gmail.com", inplace=True)
+        df['Email'] = df['Email'].fillna("add_email@gmail.com")
         
         # Clear existing records
         Student.query.delete()
