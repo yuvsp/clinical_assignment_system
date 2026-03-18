@@ -242,6 +242,7 @@ def add_student():
     if request.method == 'POST':
         new_student = Student(
             name=request.form['name'],
+            email=(request.form.get('email') or '').strip() or 'add_email@gmail.com',
             preferred_field_id_1=request.form['preferred_fields_1'],
             preferred_field_id_2=request.form['preferred_fields_2'],
             preferred_field_id_3=request.form['preferred_fields_3'],
