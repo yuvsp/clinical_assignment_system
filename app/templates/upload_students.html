@@ -2,7 +2,13 @@
 
 {% block content %}
 <h1 class="mb-4 text-right">ייבא סטודנטיות מקובץ אקסל</h1>
-<p class="text-right text-muted mb-4">העלאת קובץ תחליף את כל רשומות הסטודנטיות הקיימות. נא להעלות קובץ אקסל עם העמודות: Name, Email, Preferred Field 1, Preferred Field 2, Preferred Field 3, Preferred Practice Area, Semester.</p>
+<div class="text-right text-muted mb-4">
+  <p>העלאת הקובץ <strong>מסנכרנת</strong> את רשימת הסטודנטיות עם המערכת: סטודנטיות שכבר קיימות מתעדכנות <strong>בלי לאבד שיבוצים</strong>. סטודנטיות שאינן מופיעות בקובץ <strong>יימחקו מהמערכת</strong> יחד עם השיבוצים שלהן.</p>
+  <p class="mb-2"><strong>עמודות נדרשות:</strong> Name, Email, Preferred Field 1, Preferred Field 2, Preferred Field 3, Preferred Practice Area, Semester.</p>
+  <p class="mb-2"><strong>אופציונלי — Id:</strong> אם מוסיפים עמודה בשם <code>Id</code> עם מזהה המסד של הסטודנטית (מספר), ההתאמה מדויקת גם אחרי שינוי שם או אימייל.</p>
+  <p class="mb-2"><strong>אימייל ייחודי:</strong> כל סטודנטית חייבת אימייל ייחודי במסד. תא אימייל ריק או הכתובת הישנה <code>add_email@gmail.com</code> — בסטודנטית קיימת נשמר האימייל הקיים (כולל כתובת מערכת כמו <code>add_email_a1b2c3d4@gmail.com</code>); בסטודנטית חדשה נוצרת אוטומטית כתובת ייחודית דומה.</p>
+  <p class="mb-0"><strong>התאמה ללא Id:</strong> לפי אימייל מלא בעמודה; אם אין אימייל מלא — לפי שם מדויק. מומלץ למלא אימייל אמיתי או לייצא מהמערכת את עמודת האימייל אחרי ייבוא ראשון.</p>
+</div>
 <form action="{{ url_for('main.upload_students') }}" method="post" enctype="multipart/form-data" dir="rtl" class="card-form">
     <div class="form-group text-right d-flex flex-wrap gap-2 align-items-center">
         <span class="upload-one-btn">

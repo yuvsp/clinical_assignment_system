@@ -23,7 +23,7 @@ class ClinicalInstructor(db.Model):
 class Student(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
-    email = db.Column(db.String(100), nullable=False, default="add_email@gmail.com")  # New email field
+    email = db.Column(db.String(100), nullable=False, unique=True)
     preferred_field_id_1 = db.Column(db.Integer, db.ForeignKey('field.id'), nullable=False)
     preferred_field_1 = db.relationship('Field', foreign_keys=[preferred_field_id_1], backref='students_1')
     preferred_field_id_2 = db.Column(db.Integer, db.ForeignKey('field.id'), nullable=False)

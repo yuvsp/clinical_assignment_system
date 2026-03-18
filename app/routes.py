@@ -3,6 +3,7 @@ from werkzeug.utils import secure_filename
 from app import db
 from app.models import ClinicalInstructor, Student, Assignment, Field, ArchivedSnapshot, ArchivedAssignment, AppSetting
 from app.email_utils import get_student_email_html
+from app.student_email_utils import generate_unique_student_email, is_legacy_placeholder_email
 from app.gmail_oauth import (
     build_gmail_flow,
     clear_gmail_credentials,
@@ -246,9 +247,19 @@ def add_instructor():
 def add_student():
     fields = Field.query.all()
     if request.method == 'POST':
+        raw_email = (request.form.get("email") or "").strip()
+        if not raw_email or is_legacy_placeholder_email(raw_email):
+            email = generate_unique_student_email()
+        else:
+            email = raw_email
+            if Student.query.filter(
+                db.func.lower(db.func.trim(Student.email)) == email.lower()
+            ).first():
+                flash("כתובת האימייל כבר קיימת במערכת.", "danger")
+                return render_template("add_student.html", fields=fields)
         new_student = Student(
             name=request.form['name'],
-            email=(request.form.get('email') or '').strip() or 'add_email@gmail.com',
+            email=email,
             preferred_field_id_1=request.form['preferred_fields_1'],
             preferred_field_id_2=request.form['preferred_fields_2'],
             preferred_field_id_3=request.form['preferred_fields_3'],
@@ -681,39 +692,196 @@ def upload_students():
             return redirect(url_for('main.students_view'))
     return render_template('upload_students.html')
 
+def _upload_row_has_real_email(row) -> bool:
+    """True if Email column has a non-empty value other than the legacy shared placeholder."""
+    v = row.get("Email")
+    if v is None or (isinstance(v, float) and pd.isna(v)):
+        return False
+    s = str(v).strip()
+    if not s:
+        return False
+    return not is_legacy_placeholder_email(s)
+
+
+def _resolve_student_id_from_upload_row(row, id_col, students_by_id, all_students):
+    """Match by Id, else by email (unique), else by name when email empty/legacy."""
+    if id_col is not None:
+        raw = row[id_col]
+        if pd.notna(raw) and raw is not None and str(raw).strip() != "":
+            try:
+                sid = int(float(raw))
+                if sid in students_by_id:
+                    return sid
+            except (ValueError, TypeError):
+                pass
+    if _upload_row_has_real_email(row):
+        em = str(row["Email"]).strip().lower()
+        for s in all_students:
+            if s.email.strip().lower() == em:
+                return s.id
+        return None
+    name = str(row["Name"]).strip() if pd.notna(row["Name"]) else ""
+    if not name:
+        return None
+    for s in all_students:
+        if s.name.strip() == name:
+            return s.id
+    return None
+
+
+def _student_row_semester(row):
+    sem = row.get("Semester", "א")
+    if sem is None or (isinstance(sem, float) and pd.isna(sem)):
+        return "א"
+    s = str(sem).strip()
+    return (s[:1] if s else "א") or "א"
+
+
 def process_student_file(filepath):
     try:
         df = pd.read_excel(filepath)
-        
-        # Check for required columns
-        required_columns = ['Name', 'Email', 'Preferred Field 1', 'Preferred Field 2', 'Preferred Field 3', 'Preferred Practice Area', 'Semester']
+        if len(df) == 0:
+            raise ValueError("הקובץ ריק.")
+
+        required_columns = [
+            "Name",
+            "Email",
+            "Preferred Field 1",
+            "Preferred Field 2",
+            "Preferred Field 3",
+            "Preferred Practice Area",
+            "Semester",
+        ]
         for col in required_columns:
             if col not in df.columns:
                 raise ValueError(f"Missing column: {col}")
-        
-        # Ensure email defaults to "add_email@gmail.com" if missing
-        df['Email'] = df['Email'].fillna("add_email@gmail.com")
-        
-        # Clear existing records
-        Student.query.delete()
-        db.session.commit()
 
-        # Add new records from the Excel file
-        for _, row in df.iterrows():
-            new_student = Student(
-                name=row['Name'],
-                email=row['Email'],  # Add email handling
-                preferred_field_1=Field.query.filter_by(name=row['Preferred Field 1']).first(),
-                preferred_field_2=Field.query.filter_by(name=row['Preferred Field 2']).first(),
-                preferred_field_3=Field.query.filter_by(name=row['Preferred Field 3']).first(),
-                preferred_practice_area=row['Preferred Practice Area'],
-                semester=row.get('Semester', 'א')  # Default to 'א' if the semester field is missing
+        id_col = None
+        for c in df.columns:
+            if str(c).strip().lower() == "id":
+                id_col = c
+                break
+
+        all_students = Student.query.all()
+        students_by_id = {s.id: s for s in all_students}
+
+        rows_list = list(df.iterrows())
+        resolutions = []
+        for _, row in rows_list:
+            resolutions.append(
+                _resolve_student_id_from_upload_row(row, id_col, students_by_id, all_students)
             )
-            db.session.add(new_student)
+
+        seen_matched_ids = set()
+        for sid in resolutions:
+            if sid is not None:
+                if sid in seen_matched_ids:
+                    raise ValueError(
+                        "שורות כפולות באקסל מפנות לאותה סטודנטית (אותו מזהה, אימייל או שם). "
+                        "נא למזג או להסיר כפילות."
+                    )
+                seen_matched_ids.add(sid)
+
+        new_row_keys = set()
+        for (_, row), sid in zip(rows_list, resolutions):
+            if sid is not None:
+                continue
+            if _upload_row_has_real_email(row):
+                key = ("email", str(row["Email"]).strip().lower())
+            else:
+                key = ("name", str(row["Name"]).strip() if pd.notna(row["Name"]) else "")
+            if not key[1]:
+                raise ValueError("שורה ללא שם; לסטודנטית חדשה ללא אימייל מלא — נא למלא שם ייחודי או אימייל.")
+            if key in new_row_keys:
+                raise ValueError(
+                    "שורות כפולות לסטודנטית חדשה (אותו אימייל, או אותו שם כשאין אימייל מלא בעמודה)."
+                )
+            new_row_keys.add(key)
+
+        matched_ids = set()
+
+        for (_, row), sid in zip(rows_list, resolutions):
+            f1 = Field.query.filter_by(name=row["Preferred Field 1"]).first()
+            f2 = Field.query.filter_by(name=row["Preferred Field 2"]).first()
+            f3 = Field.query.filter_by(name=row["Preferred Field 3"]).first()
+            for label, f, col in (
+                ("תחום מועדף 1", f1, "Preferred Field 1"),
+                ("תחום מועדף 2", f2, "Preferred Field 2"),
+                ("תחום מועדף 3", f3, "Preferred Field 3"),
+            ):
+                if f is None:
+                    raise ValueError(f'{label} לא נמצא במערכת: "{row[col]}"')
+
+            name_cell = str(row["Name"]).strip() if pd.notna(row["Name"]) else ""
+            if not name_cell:
+                raise ValueError("יש שורה ללא שם.")
+            sem = _student_row_semester(row)
+            ppa = (
+                str(row["Preferred Practice Area"]).strip()
+                if pd.notna(row["Preferred Practice Area"])
+                else ""
+            )
+            if not ppa:
+                raise ValueError(f'חסר אזור התמחות מועדף בשורה של "{name_cell}".')
+
+            if sid is not None:
+                st = Student.query.get(sid)
+                st.name = name_cell
+                if _upload_row_has_real_email(row):
+                    new_em = str(row["Email"]).strip()
+                    taken = (
+                        Student.query.filter(
+                            db.func.lower(db.func.trim(Student.email))
+                            == new_em.lower(),
+                            Student.id != st.id,
+                        ).first()
+                    )
+                    if taken:
+                        raise ValueError(
+                            f'האימייל "{new_em}" כבר שייך לסטודנטית אחרת.'
+                        )
+                    st.email = new_em
+                st.preferred_field_id_1 = f1.id
+                st.preferred_field_id_2 = f2.id
+                st.preferred_field_id_3 = f3.id
+                st.preferred_practice_area = ppa
+                st.semester = sem
+                matched_ids.add(sid)
+            else:
+                if _upload_row_has_real_email(row):
+                    new_em = str(row["Email"]).strip()
+                    if Student.query.filter(
+                        db.func.lower(db.func.trim(Student.email)) == new_em.lower()
+                    ).first():
+                        raise ValueError(
+                            f'האימייל "{new_em}" כבר קיים — ייתכן שורה כפולה או סטודנטית קיימת.'
+                        )
+                    ins_email = new_em
+                else:
+                    ins_email = generate_unique_student_email()
+                st = Student(
+                    name=name_cell,
+                    email=ins_email,
+                    preferred_field_1=f1,
+                    preferred_field_2=f2,
+                    preferred_field_3=f3,
+                    preferred_practice_area=ppa,
+                    semester=sem,
+                )
+                db.session.add(st)
+                db.session.flush()
+                matched_ids.add(st.id)
+                all_students.append(st)
+                students_by_id[st.id] = st
+
+        for s in list(Student.query.all()):
+            if s.id not in matched_ids:
+                Assignment.query.filter_by(student_id=s.id).delete()
+                db.session.delete(s)
+
         db.session.commit()
-    
     except Exception as e:
-        flash(str(e), 'danger')
+        flash(str(e), "danger")
         db.session.rollback()
 
 
