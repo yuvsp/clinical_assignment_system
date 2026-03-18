@@ -11,7 +11,7 @@ This project is a web application for assigning clinical instructors to students
 5. Configure Google OAuth for Gmail sending:
    - Create a Google Cloud project.
    - Enable the Gmail API.
-   - Configure the OAuth consent screen.
+   - Configure the OAuth consent screen and add scopes: **Gmail send** and **Gmail metadata** (metadata is required so the app can read the connected account email via `users.getProfile`).
    - Create a Web application OAuth client.
    - Add your callback URL, such as `http://localhost:5000/api/gmail/callback`.
    - Copy the client ID and client secret into `.env`.
@@ -37,6 +37,7 @@ The app stores the Gmail OAuth token encrypted using `SECRET_KEY`, so keep that 
 
 - The app no longer uses Gmail SMTP or app passwords for sending mail.
 - If the Gmail connection is revoked, reconnect through the assignments page.
+- If you change OAuth scopes, disconnect Gmail and connect again so Google re-authorizes.
 
 ## Deployment (Koyeb + Supabase)
 

@@ -19,7 +19,11 @@ from app import db
 from app.models import AppSetting
 
 
-GMAIL_SCOPES = ["https://www.googleapis.com/auth/gmail.send"]
+# gmail.send cannot call users.getProfile; gmail.metadata is minimal for profile email.
+GMAIL_SCOPES = [
+    "https://www.googleapis.com/auth/gmail.send",
+    "https://www.googleapis.com/auth/gmail.metadata",
+]
 GMAIL_CREDENTIALS_KEY = "gmail_oauth_credentials"
 GMAIL_ACCOUNT_EMAIL_KEY = "gmail_oauth_account_email"
 
