@@ -32,7 +32,7 @@
     <div class="d-flex flex-wrap gap-2">
         {% if gmail_connected %}
             <form method="post" action="{{ url_for('main.gmail_disconnect') }}" class="m-0">
-                <button type="submit" class="btn btn-outline-light btn-sm">ניתוק Gmail</button>
+                <button type="submit" class="btn btn-light btn-sm">ניתוק Gmail</button>
             </form>
         {% elif gmail_configured %}
             <a class="btn btn-light btn-sm" href="{{ url_for('main.gmail_connect', next=url_for('main.current_assignments_table', semester=semester)) }}">חיבור Gmail</a>
