@@ -47,8 +47,18 @@ def upgrade():
         else:
             emails_seen.add(e)
 
-    op.create_unique_constraint("uq_student_email", "student", ["email"])
+    bind = op.get_bind()
+    if bind.dialect.name == "sqlite":
+        with op.batch_alter_table("student", schema=None) as batch_op:
+            batch_op.create_unique_constraint("uq_student_email", ["email"])
+    else:
+        op.create_unique_constraint("uq_student_email", "student", ["email"])
 
 
 def downgrade():
-    op.drop_constraint("uq_student_email", "student", type_="unique")
+    bind = op.get_bind()
+    if bind.dialect.name == "sqlite":
+        with op.batch_alter_table("student", schema=None) as batch_op:
+            batch_op.drop_constraint("uq_student_email", type_="unique")
+    else:
+        op.drop_constraint("uq_student_email", "student", type_="unique")
