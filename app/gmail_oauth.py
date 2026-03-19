@@ -2,9 +2,6 @@ import base64
 import hashlib
 import json
 import secrets
-from email.header import Header
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
 from urllib import error as urllib_error
 from urllib import request as urllib_request
 
@@ -17,6 +14,7 @@ from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
 from app import db
+from app.gmail_mime import build_multipart_email
 from app.models import AppSetting
 
 
@@ -206,18 +204,6 @@ def revoke_gmail_credentials():
     clear_gmail_credentials()
 
 
-def _build_mime_message(subject, to_email, plain_body, html_body, from_email=None):
-    message = MIMEMultipart("alternative")
-    if from_email:
-        message["From"] = from_email
-    message["To"] = to_email
-    # RFC 2047: raw UTF-8 in Subject breaks in transit (mojibake); Header encodes as =?utf-8?b?...?=
-    message["Subject"] = Header(subject, "utf-8")
-    message.attach(MIMEText(plain_body or "", "plain", "utf-8"))
-    message.attach(MIMEText(html_body or "", "html", "utf-8"))
-    return message
-
-
 def send_gmail_message(subject, to_email, plain_body, html_body, from_email=None):
     """Send a message through Gmail API and return the API response."""
     service = get_gmail_service(refresh_if_needed=True)
@@ -226,7 +212,9 @@ def send_gmail_message(subject, to_email, plain_body, html_body, from_email=None
     else:
         sender_email = get_gmail_account_email()
 
-    message = _build_mime_message(subject, to_email, plain_body, html_body, sender_email or None)
+    message = build_multipart_email(
+        subject, to_email, plain_body, html_body, sender_email or None
+    )
     raw_message = base64.urlsafe_b64encode(message.as_bytes()).decode("ascii")
 
     try:
