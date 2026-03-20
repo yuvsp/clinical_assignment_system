@@ -13,6 +13,8 @@ class Config:
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SECRET_KEY = os.getenv("SECRET_KEY") or os.urandom(24).hex()
     DEBUG = os.getenv("FLASK_DEBUG", "0").lower() in ("1", "true", "yes")
+    # Keep auth data session-scoped unless explicitly overridden.
+    SESSION_PERMANENT = os.getenv("SESSION_PERMANENT", "0").lower() in ("1", "true", "yes")
 
     # Use NullPool with Supabase transaction pooler (port 6543) to avoid connection limits
     _uri = os.getenv("DATABASE_URL", "")

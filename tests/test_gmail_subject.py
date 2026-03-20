@@ -27,7 +27,9 @@ class TestGmailMimeSubject(unittest.TestCase):
             "<p>שלום</p>",
             "sender@example.com",
         )
-        raw = msg.as_bytes()
+        raw = (
+            msg.as_bytes().replace(b"\r\n", b"\n").replace(b"\n", b"\r\n")
+        )
 
         subj_lines = [
             line

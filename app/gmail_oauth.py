@@ -6,16 +6,14 @@ from urllib import error as urllib_error
 from urllib import request as urllib_request
 
 from cryptography.fernet import Fernet, InvalidToken
-from flask import current_app
+from flask import current_app, session
 from google.auth.transport.requests import Request as GoogleRequest
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import Flow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
-from app import db
 from app.gmail_mime import build_multipart_email
-from app.models import AppSetting
 
 
 # gmail.send cannot call users.getProfile; gmail.metadata is minimal for profile email.
@@ -40,27 +38,6 @@ def gmail_oauth_configured():
     )
 
 
-def _setting_get(key, default=""):
-    row = AppSetting.query.get(key)
-    return (row.value if row and row.value is not None else default) or default
-
-
-def _setting_set(key, value):
-    row = AppSetting.query.get(key)
-    if row:
-        row.value = value
-    else:
-        db.session.add(AppSetting(key=key, value=value))
-    db.session.commit()
-
-
-def _setting_delete(key):
-    row = AppSetting.query.get(key)
-    if row:
-        db.session.delete(row)
-        db.session.commit()
-
-
 def _fernet():
     secret = current_app.config.get("SECRET_KEY") or current_app.secret_key or ""
     if not secret:
@@ -79,11 +56,15 @@ def _decrypt_text(value):
 
 def get_gmail_connection_status():
     """Return a small status payload for the assignments page."""
+    current_app.logger.debug(
+        "gmail_oauth session credentials present=%s",
+        bool(session.get(GMAIL_CREDENTIALS_KEY)),
+    )
     credentials = load_gmail_credentials(refresh_if_needed=False)
     return {
         "configured": gmail_oauth_configured(),
         "connected": bool(credentials and (credentials.refresh_token or credentials.token)),
-        "account_email": _setting_get(GMAIL_ACCOUNT_EMAIL_KEY, ""),
+        "account_email": session.get(GMAIL_ACCOUNT_EMAIL_KEY, ""),
     }
 
 
@@ -117,12 +98,12 @@ def build_gmail_flow(redirect_uri=None, state=None, code_verifier=None):
 
 
 def store_gmail_credentials(credentials):
-    """Persist the OAuth credentials and the connected Gmail address."""
-    _setting_set(GMAIL_CREDENTIALS_KEY, _encrypt_text(credentials.to_json()))
+    """Store OAuth credentials for the current session only."""
+    session[GMAIL_CREDENTIALS_KEY] = _encrypt_text(credentials.to_json())
 
 
 def _load_raw_credentials():
-    raw_value = _setting_get(GMAIL_CREDENTIALS_KEY, "")
+    raw_value = session.get(GMAIL_CREDENTIALS_KEY, "")
     if not raw_value:
         return None
 
@@ -152,17 +133,17 @@ def load_gmail_credentials(refresh_if_needed=True):
 
 
 def clear_gmail_credentials():
-    """Remove the stored Gmail OAuth credentials."""
-    _setting_delete(GMAIL_CREDENTIALS_KEY)
-    _setting_delete(GMAIL_ACCOUNT_EMAIL_KEY)
+    """Remove session-scoped Gmail OAuth credentials."""
+    session.pop(GMAIL_CREDENTIALS_KEY, None)
+    session.pop(GMAIL_ACCOUNT_EMAIL_KEY, None)
 
 
 def set_gmail_account_email(email):
-    _setting_set(GMAIL_ACCOUNT_EMAIL_KEY, email or "")
+    session[GMAIL_ACCOUNT_EMAIL_KEY] = email or ""
 
 
 def get_gmail_account_email():
-    return _setting_get(GMAIL_ACCOUNT_EMAIL_KEY, "")
+    return session.get(GMAIL_ACCOUNT_EMAIL_KEY, "")
 
 
 def get_gmail_service(refresh_if_needed=True):
@@ -215,7 +196,50 @@ def send_gmail_message(subject, to_email, plain_body, html_body, from_email=None
     message = build_multipart_email(
         subject, to_email, plain_body, html_body, sender_email or None
     )
-    raw_message = base64.urlsafe_b64encode(message.as_bytes()).decode("ascii")
+    raw_bytes = message.as_bytes()
+    # RFC 2822 / Gmail raw: CRLF (MIMEMultipart uses LF-only)
+    raw_bytes = raw_bytes.replace(b"\r\n", b"\n").replace(b"\n", b"\r\n")
+    # #region agent log
+    try:
+        import json
+        import time
+        from pathlib import Path
+
+        _sl = [
+            ln
+            for ln in raw_bytes.split(b"\r\n")
+            if ln.lower().startswith(b"subject:")
+        ]
+        _sv = _sl[0].split(b":", 1)[1].strip() if _sl else b""
+        _p = Path(__file__).resolve().parents[1] / "debug-c3ccbf.log"
+        with open(_p, "a", encoding="utf-8") as _f:
+            _f.write(
+                json.dumps(
+                    {
+                        "sessionId": "c3ccbf",
+                        "hypothesisId": "H1_H4",
+                        "location": "gmail_oauth.send_gmail_message",
+                        "message": "mime_subject_wire",
+                        "data": {
+                            "has_rfc2047": b"=?utf-8?" in (_sl[0] if _sl else b""),
+                            "subject_value_has_raw_d7": b"\xd7" in _sv,
+                            "subject_line_head_ascii": _sl[0][:90].decode(
+                                "ascii", errors="replace"
+                            )
+                            if _sl
+                            else "",
+                        },
+                        "runId": "pre-fix",
+                        "timestamp": int(time.time() * 1000),
+                    },
+                    ensure_ascii=False,
+                )
+                + "\n"
+            )
+    except OSError:
+        pass
+    # #endregion
+    raw_message = base64.urlsafe_b64encode(raw_bytes).decode("ascii")
 
     try:
         return service.users().messages().send(
