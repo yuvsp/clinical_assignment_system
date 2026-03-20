@@ -1,10 +1,13 @@
 import base64
 import hashlib
 import json
+import os
 import secrets
+import smtplib
 from email import policy as email_policy
 from urllib import error as urllib_error
 from urllib import request as urllib_request
+from urllib.parse import urlparse
 
 from cryptography.fernet import Fernet, InvalidToken
 from flask import current_app, session
@@ -19,11 +22,32 @@ from app.gmail_mime import build_multipart_email
 
 # gmail.send cannot call users.getProfile; gmail.metadata is minimal for profile email.
 GMAIL_SCOPES = [
+    "https://mail.google.com/",
     "https://www.googleapis.com/auth/gmail.send",
     "https://www.googleapis.com/auth/gmail.metadata",
 ]
 GMAIL_CREDENTIALS_KEY = "gmail_oauth_credentials"
 GMAIL_ACCOUNT_EMAIL_KEY = "gmail_oauth_account_email"
+
+
+def _send_via_gmail_smtp(raw_bytes, sender_email, to_email, access_token):
+    auth_string = f"user={sender_email}\x01auth=Bearer {access_token}\x01\x01"
+    auth_b64 = base64.b64encode(auth_string.encode("utf-8")).decode("ascii")
+    with smtplib.SMTP("smtp.gmail.com", 587, timeout=20) as smtp:
+        smtp.ehlo()
+        smtp.starttls()
+        smtp.ehlo()
+        code, resp = smtp.docmd("AUTH", "XOAUTH2 " + auth_b64)
+        if code != 235:
+            raise RuntimeError(
+                f"SMTP XOAUTH2 auth failed: {code} {resp.decode('utf-8', errors='replace')}"
+            )
+        smtp.sendmail(
+            sender_email,
+            [to_email],
+            raw_bytes,
+            mail_options=("SMTPUTF8",),
+        )
 
 
 def new_gmail_oauth_code_verifier():
@@ -79,6 +103,14 @@ def build_gmail_flow(redirect_uri=None, state=None, code_verifier=None):
         raise RuntimeError("Missing Google OAuth settings.")
 
     redirect_uri = redirect_uri or current_app.config.get("GOOGLE_REDIRECT_URI")
+    parsed_uri = urlparse(redirect_uri or "")
+    is_local_http = (
+        parsed_uri.scheme == "http"
+        and parsed_uri.hostname in ("localhost", "127.0.0.1")
+    )
+    if is_local_http:
+        # Allow OAuthlib local-development exception for localhost over HTTP.
+        os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
     client_config = {
         "web": {
             "client_id": current_app.config["GOOGLE_CLIENT_ID"],
@@ -186,76 +218,50 @@ def revoke_gmail_credentials():
     clear_gmail_credentials()
 
 
-def send_gmail_message(subject, to_email, plain_body, html_body, from_email=None):
-    """Send a message through Gmail API and return the API response."""
-    service = get_gmail_service(refresh_if_needed=True)
+def send_gmail_message(
+    subject,
+    to_email,
+    plain_body,
+    html_body,
+    from_email=None,
+):
+    """Send a message through Gmail SMTP (OAuth2), with API fallback for ASCII-only subjects."""
+    credentials = load_gmail_credentials(refresh_if_needed=True)
+    if not credentials:
+        raise RuntimeError("Gmail account is not connected.")
     if from_email:
         sender_email = from_email
     else:
         sender_email = get_gmail_account_email()
 
     message = build_multipart_email(
-        subject, to_email, plain_body, html_body, sender_email or None
+        subject,
+        to_email,
+        plain_body,
+        html_body,
+        sender_email or None,
     )
     raw_bytes = message.as_bytes(policy=email_policy.SMTP.clone(max_line_length=998))
     # RFC 2822 / Gmail raw: CRLF (MIMEMultipart uses LF-only)
     raw_bytes = raw_bytes.replace(b"\r\n", b"\n").replace(b"\n", b"\r\n")
-    # #region agent log
+    has_non_ascii_subject = any(ord(ch) > 127 for ch in (subject or ""))
     try:
-        import json
-        import time
-        from pathlib import Path
-
-        _lines = raw_bytes.split(b"\r\n")
-        _subject_line_index = next(
-            (i for i, ln in enumerate(_lines) if ln.lower().startswith(b"subject:")),
-            None,
-        )
-        _subject_header_bytes = b""
-        _sv = b""
-        if _subject_line_index is not None:
-            _subject_header_bytes = _lines[_subject_line_index]
-            _cont_i = _subject_line_index + 1
-            while _cont_i < len(_lines) and _lines[_cont_i][:1] in (b" ", b"\t"):
-                _subject_header_bytes += b"\r\n" + _lines[_cont_i]
-                _cont_i += 1
-            _sv = _subject_header_bytes.split(b":", 1)[1].strip()
-        _subject_has_continuation = b"\r\n " in _subject_header_bytes or b"\r\n\t" in _subject_header_bytes
-        _p = Path(__file__).resolve().parents[1] / "debug-c3ccbf.log"
-        with open(_p, "a", encoding="utf-8") as _f:
-            _f.write(
-                json.dumps(
-                    {
-                        "sessionId": "c3ccbf",
-                        "hypothesisId": "H1_H4",
-                        "location": "gmail_oauth.send_gmail_message",
-                        "message": "mime_subject_wire",
-                        "data": {
-                            "has_rfc2047": b"=?utf-8?" in _subject_header_bytes.lower(),
-                            "subject_has_continuation": _subject_has_continuation,
-                            "subject_value_has_raw_d7": b"\xd7" in _sv,
-                            "subject_line_head_ascii": _subject_header_bytes[:90].decode(
-                                "ascii", errors="replace"
-                            )
-                            if _subject_header_bytes
-                            else "",
-                        },
-                        "runId": "pre-fix",
-                        "timestamp": int(time.time() * 1000),
-                    },
-                    ensure_ascii=False,
-                )
-                + "\n"
-            )
-    except OSError:
-        pass
-    # #endregion
-    raw_message = base64.urlsafe_b64encode(raw_bytes).decode("ascii")
-
-    try:
-        return service.users().messages().send(
-            userId="me",
-            body={"raw": raw_message},
-        ).execute()
-    except HttpError as exc:
-        raise RuntimeError(f"Gmail API error: {exc}") from exc
+        _send_via_gmail_smtp(raw_bytes, sender_email, to_email, credentials.token or "")
+        return {"id": message.get("Message-ID", "")}
+    except Exception as smtp_exc:
+        if has_non_ascii_subject:
+            raise RuntimeError(
+                "SMTP send failed for Hebrew subject. Please disconnect/reconnect Gmail to grant SMTP scope (mail.google.com), then retry."
+            ) from smtp_exc
+        raw_message = base64.urlsafe_b64encode(raw_bytes).decode("ascii")
+        try:
+            service = get_gmail_service(refresh_if_needed=True)
+            result = service.users().messages().send(
+                userId="me",
+                body={"raw": raw_message},
+            ).execute()
+            return result
+        except HttpError as exc:
+            raise RuntimeError(
+                f"SMTP send failed ({smtp_exc}); Gmail API error: {exc}"
+            ) from exc

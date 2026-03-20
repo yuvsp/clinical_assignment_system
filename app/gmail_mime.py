@@ -1,64 +1,26 @@
 """
 MIME multipart/alternative for Gmail API raw send (stdlib only).
-MIMEMultipart + email.header.Header for Subject: reliable RFC 2047 for long
-Hebrew strings (EmailMessage+SMTP mishandles pre-encoded multi-chunk Subject).
+Use RFC 2047 encoded Subject for broad compatibility.
 """
-import json
-import time
-from pathlib import Path
-
-from email.charset import Charset
+from email.charset import QP, Charset
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
-# #region agent log
-def _agent_log(hypothesis_id, location, message, data=None, run_id="pre-fix"):
-    try:
-        p = Path(__file__).resolve().parents[1] / "debug-c3ccbf.log"
-        with open(p, "a", encoding="utf-8") as f:
-            f.write(
-                json.dumps(
-                    {
-                        "sessionId": "c3ccbf",
-                        "hypothesisId": hypothesis_id,
-                        "location": location,
-                        "message": message,
-                        "data": data or {},
-                        "runId": run_id,
-                        "timestamp": int(time.time() * 1000),
-                    },
-                    ensure_ascii=False,
-                )
-                + "\n"
-            )
-    except OSError:
-        pass
-
-
-# #endregion
-
-
-def build_multipart_email(subject, to_email, plain_body, html_body, from_email=None):
+def build_multipart_email(
+    subject,
+    to_email,
+    plain_body,
+    html_body,
+    from_email=None,
+):
     message = MIMEMultipart("alternative")
     if from_email:
         message["From"] = from_email
     message["To"] = to_email
     subj = "" if subject is None else str(subject)
-    # Force RFC 2047 encoded-word serialization for non-ASCII subjects.
-    # Encode as one RFC 2047 token to avoid continuation-line-only Subject bodies.
-    message["Subject"] = Charset("utf-8").header_encode(subj)
-    # #region agent log
-    _agent_log(
-        "H2_H4",
-        "gmail_mime.build_multipart_email",
-        "subject_mime_header",
-        {
-            "subj_len": len(subj),
-            "first_cp": ord(subj[0]) if subj else None,
-            "using": "MIMEMultipart+Header",
-        },
-    )
-    # #endregion
+    utf8_q = Charset("utf-8")
+    utf8_q.header_encoding = QP
+    message["Subject"] = utf8_q.header_encode(subj)
     message.attach(MIMEText(plain_body or "", "plain", "utf-8"))
     message.attach(MIMEText(html_body or "", "html", "utf-8"))
     return message

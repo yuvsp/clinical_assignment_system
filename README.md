@@ -42,6 +42,45 @@ The app stores the Gmail OAuth token encrypted using `SECRET_KEY`, so keep that 
 3. Click `חיבור Gmail` and grant consent.
 4. Use the `שלח אימייל` button to send the assignment email through Gmail API.
 
+### Local HTTPS (recommended for secure-cookie/auth testing)
+
+The app supports HTTPS in local development via env vars.
+
+1. Enable HTTPS in `.env`:
+
+   ```dotenv
+   LOCAL_HTTPS=true
+   HOST=127.0.0.1
+   PORT=5000
+   ```
+
+2. Choose one of these certificate options:
+   - **Trusted local cert (recommended):** Use `mkcert`.
+   - **Quick fallback:** Do not set cert/key env vars; app uses Flask `"adhoc"` cert.
+
+3. If using `mkcert`, generate cert files from project root:
+
+   ```powershell
+   mkcert -install
+   mkdir certs
+   mkcert -cert-file certs/localhost.pem -key-file certs/localhost-key.pem localhost 127.0.0.1 ::1
+   ```
+
+4. Point `.env` at cert files:
+
+   ```dotenv
+   SSL_CERT_FILE=./certs/localhost.pem
+   SSL_KEY_FILE=./certs/localhost-key.pem
+   ```
+
+5. Start app and browse using HTTPS:
+
+   ```powershell
+   python run.py
+   ```
+
+   Open `https://127.0.0.1:5000` or `https://localhost:5000`.
+
 ## Notes
 
 - The app no longer uses Gmail SMTP or app passwords for sending mail.

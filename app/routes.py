@@ -1507,7 +1507,10 @@ def send_student_email():
     except Exception as exc:
         return jsonify({'success': False, 'error': str(exc)}), 500
 
-    return jsonify({'success': True, 'message_id': response.get('id')})
+    return jsonify({
+        'success': True,
+        'message_id': response.get('id'),
+    })
 
 
 INSTRUCTOR_EMAIL_TEMPLATE_START_KEY = 'instructor_email_template_start'
