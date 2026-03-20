@@ -481,6 +481,7 @@ def relevant_instructors(student_id):
                         })
                 else:
                     irrelevant_instructors.append({
+                        'id': instructor.id,
                         'name': instructor.name,
                         'area_of_expertise': instructor.area_of_expertise.name,
                         'day': day,
@@ -549,6 +550,7 @@ def _build_relevant_instructors_bulk(assignments_list, student_assignments_dict,
                             })
                     else:
                         irrelevant_instructors.append({
+                            'id': instructor.id,
                             'name': instructor.name,
                             'area_of_expertise': area,
                             'day': day,

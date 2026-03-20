@@ -1,4 +1,42 @@
 /**
+ * Appends a POST form to assign_direct for one instructor/day (green or yellow styling).
+ */
+function appendDirectAssignForm(container, studentId, day, instructor, buttonClass) {
+    var form = document.createElement('form');
+    form.method = 'post';
+    form.action = '/assign_direct';
+    form.style.marginBottom = '4px';
+
+    var inputStudent = document.createElement('input');
+    inputStudent.type = 'hidden';
+    inputStudent.name = 'student_id';
+    inputStudent.value = String(studentId);
+    form.appendChild(inputStudent);
+
+    var inputInstructor = document.createElement('input');
+    inputInstructor.type = 'hidden';
+    inputInstructor.name = 'instructor_id';
+    inputInstructor.value = String(instructor.id);
+    form.appendChild(inputInstructor);
+
+    var inputDay = document.createElement('input');
+    inputDay.type = 'hidden';
+    inputDay.name = 'assigned_day';
+    inputDay.value = day;
+    form.appendChild(inputDay);
+
+    var btn = document.createElement('button');
+    btn.type = 'submit';
+    btn.className = 'btn btn-link btn-assign-suggestion ' + buttonClass + ' p-1 text-start w-100';
+    btn.textContent = instructor.name + ' – ' + instructor.area_of_expertise;
+    form.appendChild(btn);
+
+    container.appendChild(form);
+}
+
+var REASON_NON_PREFERRED = 'תחום לא מועדף של הסטודנטית';
+
+/**
  * Renders relevant/irrelevant instructors content into tooltipElement from API-shaped data.
  * Used both for cache (sync) and for fetch response (async).
  */
@@ -13,61 +51,53 @@ function renderRelevantContent(data, studentId, day, tooltipElement) {
 
     var relevantForDay = (data.relevant_instructors || []).filter(function (instructor) { return instructor.day === day; });
     relevantForDay.forEach(function (instructor) {
-        var form = document.createElement('form');
-        form.method = 'post';
-        form.action = '/assign_direct';
-        form.style.marginBottom = '4px';
-
-        var inputStudent = document.createElement('input');
-        inputStudent.type = 'hidden';
-        inputStudent.name = 'student_id';
-        inputStudent.value = String(studentId);
-        form.appendChild(inputStudent);
-
-        var inputInstructor = document.createElement('input');
-        inputInstructor.type = 'hidden';
-        inputInstructor.name = 'instructor_id';
-        inputInstructor.value = String(instructor.id);
-        form.appendChild(inputInstructor);
-
-        var inputDay = document.createElement('input');
-        inputDay.type = 'hidden';
-        inputDay.name = 'assigned_day';
-        inputDay.value = day;
-        form.appendChild(inputDay);
-
-        var btn = document.createElement('button');
-        btn.type = 'submit';
-        btn.className = 'btn btn-link btn-assign-suggestion green-background p-1 text-start w-100';
-        btn.textContent = instructor.name + ' – ' + instructor.area_of_expertise;
-        form.appendChild(btn);
-
-        tooltipElement.appendChild(form);
+        appendDirectAssignForm(tooltipElement, studentId, day, instructor, 'green-background');
     });
-
-    var strong2 = document.createElement('strong');
-    strong2.textContent = 'לא רלוונטי:';
-    strong2.style.display = 'block';
-    strong2.style.marginTop = '8px';
-    tooltipElement.appendChild(strong2);
-    tooltipElement.appendChild(document.createElement('br'));
 
     var irrelevantForDay = (data.irrelevant_instructors || []).filter(function (instructor) { return instructor.day === day; });
-    irrelevantForDay.forEach(function (instructor) {
-        var p = document.createElement('p');
-        p.className = 'small mb-1';
-        if (instructor.reason === 'הקלינאית תפוסה ביום זה') {
-            p.style.textDecoration = 'line-through';
-            p.classList.add('red-background');
-        }
-        if (instructor.reason === 'תחום לא מועדף של הסטודנטית') {
-            p.classList.add('yellow-background');
-        }
-        p.textContent = instructor.name + ' – ' + instructor.area_of_expertise + ' (' + (instructor.reason || '') + ')';
-        tooltipElement.appendChild(p);
+    var possibleForDay = irrelevantForDay.filter(function (instructor) {
+        return instructor.reason === REASON_NON_PREFERRED && instructor.id != null;
+    });
+    var otherIrrelevantForDay = irrelevantForDay.filter(function (instructor) {
+        return !(instructor.reason === REASON_NON_PREFERRED && instructor.id != null);
     });
 
-    if (relevantForDay.length === 0 && irrelevantForDay.length === 0) {
+    if (possibleForDay.length > 0) {
+        var strongPossible = document.createElement('strong');
+        strongPossible.textContent = 'שיבוצים אפשריים (תחום לא מועדף):';
+        strongPossible.style.display = 'block';
+        strongPossible.style.marginTop = '8px';
+        tooltipElement.appendChild(strongPossible);
+        tooltipElement.appendChild(document.createElement('br'));
+        possibleForDay.forEach(function (instructor) {
+            appendDirectAssignForm(tooltipElement, studentId, day, instructor, 'yellow-background');
+        });
+    }
+
+    if (otherIrrelevantForDay.length > 0) {
+        var strong2 = document.createElement('strong');
+        strong2.textContent = 'לא רלוונטי / לא זמין:';
+        strong2.style.display = 'block';
+        strong2.style.marginTop = '8px';
+        tooltipElement.appendChild(strong2);
+        tooltipElement.appendChild(document.createElement('br'));
+
+        otherIrrelevantForDay.forEach(function (instructor) {
+            var p = document.createElement('p');
+            p.className = 'small mb-1';
+            if (instructor.reason === 'הקלינאית תפוסה ביום זה') {
+                p.style.textDecoration = 'line-through';
+                p.classList.add('red-background');
+            }
+            if (instructor.reason === REASON_NON_PREFERRED) {
+                p.classList.add('yellow-background');
+            }
+            p.textContent = instructor.name + ' – ' + instructor.area_of_expertise + ' (' + (instructor.reason || '') + ')';
+            tooltipElement.appendChild(p);
+        });
+    }
+
+    if (relevantForDay.length === 0 && possibleForDay.length === 0 && otherIrrelevantForDay.length === 0) {
         var msg = document.createElement('p');
         msg.className = 'small text-muted mb-0';
         msg.textContent = 'אין מדריכים רלוונטיים ליום זה';

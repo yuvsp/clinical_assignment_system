@@ -15,31 +15,6 @@
     <button type="button" class="btn btn-outline-danger assign-toolbar-btn assign-toolbar-btn-danger" data-bs-toggle="modal" data-bs-target="#clearAssignmentsModal">ניקוי שיבוצים</button>
 </div>
 
-{% set gmail_connected = gmail_connection.connected if gmail_connection else false %}
-{% set gmail_configured = gmail_connection.configured if gmail_connection else false %}
-{% set gmail_account_email = gmail_connection.account_email if gmail_connection else '' %}
-<div class="alert {% if gmail_connected %}alert-success{% elif gmail_configured %}alert-warning{% else %}alert-danger{% endif %} d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4" role="alert">
-    <div>
-        <strong>Gmail:</strong>
-        {% if gmail_connected %}
-            מחובר{% if gmail_account_email %} כ-{{ gmail_account_email }}{% endif %}
-        {% elif gmail_configured %}
-            עדיין לא מחובר. אפשר להתחבר דרך חשבון Google.
-        {% else %}
-            לא מוגדר עדיין. יש להגדיר את משתני ה-OAuth בסביבה.
-        {% endif %}
-    </div>
-    <div class="d-flex flex-wrap gap-2">
-        {% if gmail_connected %}
-            <form method="post" action="{{ url_for('main.gmail_disconnect') }}" class="m-0">
-                <button type="submit" class="btn btn-light btn-sm">ניתוק Gmail</button>
-            </form>
-        {% elif gmail_configured %}
-            <a class="btn btn-light btn-sm" href="{{ url_for('main.gmail_connect', next=url_for('main.current_assignments_table', semester=semester)) }}">חיבור Gmail</a>
-        {% endif %}
-    </div>
-</div>
-  
   <!-- Modal to gather "snapshot name" -->
   <div class="modal fade" id="archiveModal" tabindex="-1" aria-labelledby="archiveModalLabel" aria-hidden="true">
     <div class="modal-dialog">
@@ -170,6 +145,31 @@
         {% endfor %}
     </tbody>
 </table>
+</div>
+
+{% set gmail_connected = gmail_connection.connected if gmail_connection else false %}
+{% set gmail_configured = gmail_connection.configured if gmail_connection else false %}
+{% set gmail_account_email = gmail_connection.account_email if gmail_connection else '' %}
+<div class="alert {% if gmail_connected %}alert-success{% elif gmail_configured %}alert-warning{% else %}alert-danger{% endif %} d-flex flex-wrap justify-content-between align-items-center gap-2 mt-4 mb-0" role="alert">
+    <div>
+        <strong>Gmail:</strong>
+        {% if gmail_connected %}
+            מחובר{% if gmail_account_email %} כ-{{ gmail_account_email }}{% endif %}
+        {% elif gmail_configured %}
+            עדיין לא מחובר. אפשר להתחבר דרך חשבון Google.
+        {% else %}
+            לא מוגדר עדיין. יש להגדיר את משתני ה-OAuth בסביבה.
+        {% endif %}
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+        {% if gmail_connected %}
+            <form method="post" action="{{ url_for('main.gmail_disconnect') }}" class="m-0">
+                <button type="submit" class="btn btn-light btn-sm">ניתוק Gmail</button>
+            </form>
+        {% elif gmail_configured %}
+            <a class="btn btn-light btn-sm" href="{{ url_for('main.gmail_connect', next=url_for('main.current_assignments_table', semester=semester)) }}">חיבור Gmail</a>
+        {% endif %}
+    </div>
 </div>
 
 <!-- Modal to confirm sending a student email -->

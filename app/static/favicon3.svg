@@ -1,0 +1,22 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <!-- Rays -->
+  <g fill="#F4B000">
+    <rect x="236" y="60" width="40" height="100" rx="20"></rect>
+    <rect x="352" y="120" width="40" height="100" rx="20" transform="rotate(72 372 170)"></rect>
+    <rect x="352" y="292" width="40" height="100" rx="20" transform="rotate(144 372 342)"></rect>
+    <rect x="120" y="292" width="40" height="100" rx="20" transform="rotate(216 140 342)"></rect>
+    <rect x="120" y="120" width="40" height="100" rx="20" transform="rotate(288 140 170)"></rect>
+  </g>
+
+  <!-- Click ripple -->
+  <circle cx="256" cy="256" r="40" fill="#F4B000" opacity="0.15"></circle>
+  <circle cx="256" cy="256" r="20" fill="#F4B000"></circle>
+
+  <!-- Finger (minimal style) -->
+  <g stroke="#333" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" fill="#F5D1A3">
+    <path d="M256 360 
+             C250 300, 250 260, 256 240 
+             C262 220, 290 220, 296 240 
+             L296 320"></path>
+  </g>
+</svg>
