@@ -7,7 +7,7 @@ import json
 import time
 from pathlib import Path
 
-from email.header import Header
+from email.charset import Charset
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
@@ -45,7 +45,8 @@ def build_multipart_email(subject, to_email, plain_body, html_body, from_email=N
     message["To"] = to_email
     subj = "" if subject is None else str(subject)
     # Force RFC 2047 encoded-word serialization for non-ASCII subjects.
-    message["Subject"] = Header(subj, "utf-8").encode()
+    # Encode as one RFC 2047 token to avoid continuation-line-only Subject bodies.
+    message["Subject"] = Charset("utf-8").header_encode(subj)
     # #region agent log
     _agent_log(
         "H2_H4",

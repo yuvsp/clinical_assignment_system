@@ -2,6 +2,7 @@ import base64
 import hashlib
 import json
 import secrets
+from email import policy as email_policy
 from urllib import error as urllib_error
 from urllib import request as urllib_request
 
@@ -196,7 +197,7 @@ def send_gmail_message(subject, to_email, plain_body, html_body, from_email=None
     message = build_multipart_email(
         subject, to_email, plain_body, html_body, sender_email or None
     )
-    raw_bytes = message.as_bytes()
+    raw_bytes = message.as_bytes(policy=email_policy.SMTP.clone(max_line_length=998))
     # RFC 2822 / Gmail raw: CRLF (MIMEMultipart uses LF-only)
     raw_bytes = raw_bytes.replace(b"\r\n", b"\n").replace(b"\n", b"\r\n")
     # #region agent log
@@ -219,6 +220,7 @@ def send_gmail_message(subject, to_email, plain_body, html_body, from_email=None
                 _subject_header_bytes += b"\r\n" + _lines[_cont_i]
                 _cont_i += 1
             _sv = _subject_header_bytes.split(b":", 1)[1].strip()
+        _subject_has_continuation = b"\r\n " in _subject_header_bytes or b"\r\n\t" in _subject_header_bytes
         _p = Path(__file__).resolve().parents[1] / "debug-c3ccbf.log"
         with open(_p, "a", encoding="utf-8") as _f:
             _f.write(
@@ -230,6 +232,7 @@ def send_gmail_message(subject, to_email, plain_body, html_body, from_email=None
                         "message": "mime_subject_wire",
                         "data": {
                             "has_rfc2047": b"=?utf-8?" in _subject_header_bytes.lower(),
+                            "subject_has_continuation": _subject_has_continuation,
                             "subject_value_has_raw_d7": b"\xd7" in _sv,
                             "subject_line_head_ascii": _subject_header_bytes[:90].decode(
                                 "ascii", errors="replace"
