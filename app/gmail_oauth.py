@@ -205,12 +205,20 @@ def send_gmail_message(subject, to_email, plain_body, html_body, from_email=None
         import time
         from pathlib import Path
 
-        _sl = [
-            ln
-            for ln in raw_bytes.split(b"\r\n")
-            if ln.lower().startswith(b"subject:")
-        ]
-        _sv = _sl[0].split(b":", 1)[1].strip() if _sl else b""
+        _lines = raw_bytes.split(b"\r\n")
+        _subject_line_index = next(
+            (i for i, ln in enumerate(_lines) if ln.lower().startswith(b"subject:")),
+            None,
+        )
+        _subject_header_bytes = b""
+        _sv = b""
+        if _subject_line_index is not None:
+            _subject_header_bytes = _lines[_subject_line_index]
+            _cont_i = _subject_line_index + 1
+            while _cont_i < len(_lines) and _lines[_cont_i][:1] in (b" ", b"\t"):
+                _subject_header_bytes += b"\r\n" + _lines[_cont_i]
+                _cont_i += 1
+            _sv = _subject_header_bytes.split(b":", 1)[1].strip()
         _p = Path(__file__).resolve().parents[1] / "debug-c3ccbf.log"
         with open(_p, "a", encoding="utf-8") as _f:
             _f.write(
@@ -221,12 +229,12 @@ def send_gmail_message(subject, to_email, plain_body, html_body, from_email=None
                         "location": "gmail_oauth.send_gmail_message",
                         "message": "mime_subject_wire",
                         "data": {
-                            "has_rfc2047": b"=?utf-8?" in (_sl[0] if _sl else b""),
+                            "has_rfc2047": b"=?utf-8?" in _subject_header_bytes.lower(),
                             "subject_value_has_raw_d7": b"\xd7" in _sv,
-                            "subject_line_head_ascii": _sl[0][:90].decode(
+                            "subject_line_head_ascii": _subject_header_bytes[:90].decode(
                                 "ascii", errors="replace"
                             )
-                            if _sl
+                            if _subject_header_bytes
                             else "",
                         },
                         "runId": "pre-fix",

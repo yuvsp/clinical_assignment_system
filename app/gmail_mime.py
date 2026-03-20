@@ -43,8 +43,9 @@ def build_multipart_email(subject, to_email, plain_body, html_body, from_email=N
     if from_email:
         message["From"] = from_email
     message["To"] = to_email
-    subj = subject if subject is not None else ""
-    message["Subject"] = Header(subj, "utf-8")
+    subj = "" if subject is None else str(subject)
+    # Force RFC 2047 encoded-word serialization for non-ASCII subjects.
+    message["Subject"] = Header(subj, "utf-8").encode()
     # #region agent log
     _agent_log(
         "H2_H4",
